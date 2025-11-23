@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      network: gluetun_network
     container_name: jukebox
     restart: unless-stopped
     env_file:

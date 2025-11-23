@@ -190,6 +190,54 @@ def build_user_tag(username: str) -> str:
     return f"requested_by_{safe_username}"
 
 
+def get_or_create_tag_id(tag: str):
+    """Ensure Lidarr tag exists and return its ID."""
+    list_url = f"{LIDARR_URL}/tag?apikey={LIDARR_API_KEY}"
+    try:
+        resp = requests.get(list_url, timeout=10)
+        if resp.status_code == 200:
+            for item in resp.json() or []:
+                if item.get("label") == tag and "id" in item:
+                    return item["id"], None
+    except Exception as exc:
+        return None, f"Lidarr tag lookup failed: {exc}"
+
+    create_url = f"{LIDARR_URL}/tag?apikey={LIDARR_API_KEY}"
+    try:
+        resp = requests.post(create_url, json={"label": tag}, timeout=10)
+    except Exception as exc:
+        return None, f"Lidarr tag create failed: {exc}"
+
+    if resp.status_code in (200, 201):
+        try:
+            data = resp.json()
+            if "id" in data:
+                return data["id"], None
+        except Exception:
+            pass
+        return None, "Lidarr tag create returned no id"
+
+    return None, f"Lidarr tag create error {resp.status_code}: {resp.text}"
+
+
+def lookup_artist(artist_name: str):
+    """Lookup artist in Lidarr to obtain foreignArtistId and cleaned name."""
+    url = f"{LIDARR_URL}/artist/lookup"
+    try:
+        resp = requests.get(url, params={"term": artist_name, "apikey": LIDARR_API_KEY}, timeout=10)
+    except Exception as exc:
+        return None, f"Lidarr lookup failed: {exc}"
+    if resp.status_code != 200:
+        return None, f"Lidarr lookup error {resp.status_code}: {resp.text}"
+    try:
+        data = resp.json() or []
+    except Exception as exc:
+        return None, f"Lidarr lookup parse failed: {exc}"
+    if not data:
+        return None, "No matching artist found in Lidarr"
+    return data[0], None
+
+
 def create_artist_in_lidarr(username: str, artist_name: str):
     """
     Create/monitor an artist in Lidarr for a specific user.
@@ -199,15 +247,29 @@ def create_artist_in_lidarr(username: str, artist_name: str):
       - error: None on success, or an error string on failure
     """
     root_folder = build_user_root_folder(username)
-    tag = build_user_tag(username)
+    tag_label = build_user_tag(username)
+    tag_id, tag_err = get_or_create_tag_id(tag_label)
+    if tag_err:
+        return None, tag_err
+
+    artist_data, lookup_err = lookup_artist(artist_name)
+    if lookup_err:
+        return None, lookup_err
+
+    foreign_id = artist_data.get("foreignArtistId")
+    name = artist_data.get("artistName") or artist_name
+    path = f"{root_folder}/{name}"
 
     payload = {
-        "artistName": artist_name,
+        "artistName": name,
         "monitored": True,
         "qualityProfileId": LIDARR_QUALITY_PROFILE_ID,
         "metadataProfileId": LIDARR_METADATA_PROFILE_ID,
         "rootFolderPath": root_folder,
-        "tags": [tag],
+        "tags": [tag_id] if tag_id is not None else [],
+        "foreignArtistId": foreign_id,
+        "addOptions": {"monitor": "all", "searchForMissingAlbums": True},
+        "path": path,
     }
 
     url = f"{LIDARR_URL}/artist?apikey={LIDARR_API_KEY}"
