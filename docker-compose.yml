@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  jukebox:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: jukebox
+    restart: unless-stopped
+    env_file:
+      - .env
+      - /mnt/config/secrets/jukebox/env
+      - /mnt/config/secrets/bash/bash_lidarr-api-key.env
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "5000:5000"
+    networks:
+      - gluetun_network
+    # If lidarr is in a different compose file, this still works as long as
+    # both stacks share the same external network and lidarr's container_name is "lidarr".
+
+networks:
+  gluetun_network:
+    external: true

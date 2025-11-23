@@ -1,0 +1,89 @@
+{
+  "info": {
+    "_postman_id": "d0e4d4a2-0000-47f0-89e2-jukebox-placeholder",
+    "name": "Jukebox - Lidarr Request Portal",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Minimal collection for exercising the Jukebox JSON API with cookie-based sessions."
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/health"
+      },
+      "response": []
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin\"\n}"
+        },
+        "url": "{{base_url}}/api/login"
+      },
+      "response": []
+    },
+    {
+      "name": "Create Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"artist_name\": \"Explosions in the Sky\",\n  \"album_title\": \"All of a Sudden I Miss Everyone\",\n  \"note\": \"Prefer FLAC if available\"\n}"
+        },
+        "url": "{{base_url}}/api/requests"
+      },
+      "response": []
+    },
+    {
+      "name": "List Requests",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/requests"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Request by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/requests/1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "requests",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000"
+    }
+  ]
+}
