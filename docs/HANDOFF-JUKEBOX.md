@@ -3,6 +3,7 @@
 **Version**: 0.3.0
 **Last Updated**: 2025-11-24
 **Status**: Production - Security Enhanced ✅
+**Repository**: https://github.com/slyckmb/jukebox
 
 ---
 
@@ -10,8 +11,9 @@
 
 **Deployment**
 - Live at `https://jukebox.bikejeepyoga.com` via Cloudflare tunnel
-- Running on `gluetun_network` Docker network
-- Container: `jukebox-jukebox:latest` (cbc43f39d167)
+- Repository: https://github.com/slyckmb/jukebox
+- Standalone project (extracted from glider-docker with full history)
+- Container: `jukebox-jukebox:latest`
 - Flask 3.1.2 + Python 3.12 + SQLite
 - Protected by Cloudflare Zero Trust Access (OAuth + MFA)
 
