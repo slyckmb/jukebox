@@ -3,7 +3,11 @@
   {% if status == 'new' %}
     <span class="status-icon">🔵</span>
   {% elif status == 'submitted' %}
-    <span class="status-icon">✓</span>
+    <span class="status-icon">🕐</span>
+  {% elif status == 'downloading' %}
+    <span class="status-icon">📥</span>
+  {% elif status == 'completed' %}
+    <span class="status-icon">✅</span>
   {% elif status == 'failed' %}
     <span class="status-icon">✕</span>
   {% elif status == 'existing' %}

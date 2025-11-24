@@ -26,6 +26,57 @@
   <p class="card-note">{{ req.note }}</p>
   {% endif %}
 
+  <!-- Download Progress (downloading status) -->
+  {% if req.status == 'downloading' %}
+  <div class="download-progress">
+    <div class="progress-bar-container">
+      {% set percent = (req.downloaded_albums / req.total_albums * 100) | int if req.total_albums > 0 else 0 %}
+      <div class="progress-bar" style="width: {{ percent }}%"></div>
+    </div>
+    <p class="progress-text">
+      📥 {{ req.downloaded_albums }} of {{ req.total_albums }} albums ({{ percent }}%)
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- THE MONEY SHOT: Listen Now Buttons -->
+  {% if req.status == 'completed' %}
+  <div class="listen-now-section">
+    <p class="listen-now-header">✅ Ready to Listen!</p>
+    <div class="listen-now-buttons">
+      {% if media_servers.plex %}
+      <a href="{{ media_servers.plex }}/#!/search?query={{ req.artist_name | urlencode }}"
+         target="_blank"
+         class="listen-btn plex-btn">
+        <span class="btn-icon">🎬</span>
+        <span class="btn-label">Plex</span>
+      </a>
+      {% endif %}
+
+      {% if media_servers.jellyfin %}
+      <a href="{{ media_servers.jellyfin }}/#!/search?query={{ req.artist_name | urlencode }}"
+         target="_blank"
+         class="listen-btn jellyfin-btn">
+        <span class="btn-icon">🎞️</span>
+        <span class="btn-label">Jellyfin</span>
+      </a>
+      {% endif %}
+
+      {% if media_servers.navidrome %}
+      <a href="{{ media_servers.navidrome }}/app/#!/search/{{ req.artist_name | urlencode }}"
+         target="_blank"
+         class="listen-btn navidrome-btn">
+        <span class="btn-icon">🎵</span>
+        <span class="btn-label">Navidrome</span>
+      </a>
+      {% endif %}
+    </div>
+    {% if req.total_albums > 0 %}
+    <p class="albums-complete">All {{ req.total_albums }} albums downloaded</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if req.status == 'existing' %}
   <div class="existing-info">
     <span class="existing-icon">✓</span>

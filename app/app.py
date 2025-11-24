@@ -292,6 +292,118 @@ def check_artist_exists_in_lidarr(foreign_artist_id: str):
         return False, None, f"Parse error: {exc}"
 
 
+def sync_request_status(request_id: int) -> bool:
+    """
+    Sync request status with Lidarr.
+    Returns True if status changed, False otherwise.
+
+    Status Transitions:
+    - submitted → downloading (artist monitored, albums downloading)
+    - downloading → completed (all albums downloaded)
+    """
+    with closing(get_db()) as conn:
+        req = conn.execute(
+            "SELECT id, lidarr_artist_id, status FROM requests WHERE id = ?",
+            (request_id,)
+        ).fetchone()
+
+        if not req:
+            return False
+
+        # Only sync active statuses
+        if req["status"] not in ["submitted", "downloading"]:
+            return False
+
+        lidarr_artist_id = req["lidarr_artist_id"]
+        if not lidarr_artist_id:
+            return False
+
+        try:
+            # Query Lidarr for artist status
+            url = f"{LIDARR_URL}/artist/{lidarr_artist_id}"
+            resp = requests.get(url, params={"apikey": LIDARR_API_KEY}, timeout=10)
+
+            if resp.status_code != 200:
+                return False
+
+            artist_data = resp.json()
+
+            # Check if artist is monitored
+            is_monitored = artist_data.get("monitored", False)
+            if not is_monitored:
+                return False
+
+            # Get album statistics
+            statistics = artist_data.get("statistics", {})
+            total_albums = statistics.get("albumCount", 0)
+
+            # Query albums to count downloaded
+            albums_url = f"{LIDARR_URL}/album"
+            albums_resp = requests.get(
+                albums_url,
+                params={"artistId": lidarr_artist_id, "apikey": LIDARR_API_KEY},
+                timeout=10
+            )
+
+            downloaded_count = 0
+            if albums_resp.status_code == 200:
+                albums = albums_resp.json()
+                for album in albums:
+                    album_stats = album.get("statistics", {})
+                    track_file_count = album_stats.get("trackFileCount", 0)
+                    if track_file_count > 0:
+                        downloaded_count += 1
+
+            # Determine new status
+            old_status = req["status"]
+            new_status = old_status
+
+            if downloaded_count == 0:
+                new_status = "submitted"
+            elif downloaded_count < total_albums:
+                new_status = "downloading"
+            else:
+                new_status = "completed"
+
+            # Update database
+            now = datetime.utcnow().isoformat()
+            conn.execute(
+                """UPDATE requests
+                   SET status = ?,
+                       total_albums = ?,
+                       downloaded_albums = ?,
+                       last_sync_at = ?,
+                       updated_at = ?
+                   WHERE id = ?""",
+                (new_status, total_albums, downloaded_count, now, now, request_id)
+            )
+            conn.commit()
+
+            return new_status != old_status
+
+        except Exception as exc:
+            app.logger.error(f"Error syncing request {request_id}: {exc}")
+            return False
+
+
+def sync_active_requests():
+    """
+    Sync all active requests (submitted, downloading).
+    Called on page load.
+    """
+    with closing(get_db()) as conn:
+        active = conn.execute(
+            "SELECT id FROM requests WHERE status IN ('submitted', 'downloading')"
+        ).fetchall()
+
+    changed_count = 0
+    for req in active:
+        if sync_request_status(req["id"]):
+            changed_count += 1
+
+    return changed_count
+
+
 def create_artist_in_lidarr(username: str, artist_name: str):
     """
     Create/monitor an artist in Lidarr for a specific user.
@@ -468,6 +580,9 @@ def change_password():
 
 
 def _render_requests_page(user):
+    # Sync active requests before displaying
+    sync_active_requests()
+
     with closing(get_db()) as conn:
         if user["is_admin"]:
             cur = conn.execute(
