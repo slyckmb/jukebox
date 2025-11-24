@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="description" content="Jukebox - Music request portal for Lidarr">
+  <title>{% block title %}Jukebox{% endblock %}</title>
+
+  <!-- Preload critical CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <div id="app">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Toast container for notifications -->
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Flash messages converted to toasts -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <script>
+        // Inject flash messages as toasts when JS loads
+        window.flashMessages = [
+          {% for category, message in messages %}
+            { type: "{{ category }}", message: "{{ message|safe }}" },
+          {% endfor %}
+        ];
+      </script>
+    {% endif %}
+  {% endwith %}
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

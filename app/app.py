@@ -66,7 +66,9 @@ SECRET_KEY = _get_secret_env("FLASK_SECRET_KEY", "CHANGE_ME_IN_PROD_JUKEBOX")
 if not LIDARR_API_KEY:
     raise RuntimeError("LIDARR_API_KEY must be set for Jukebox to talk to Lidarr.")
 
-app = Flask(__name__)
+app = Flask(__name__,
+           static_folder='static',
+           template_folder='templates')
 app.config["SECRET_KEY"] = SECRET_KEY
 
 _startup_done = False
