@@ -510,11 +510,15 @@ def new_request():
         return redirect(url_for("login"))
     if request.method == "POST":
         artist_name = request.form.get("artist_name", "").strip()
-        album_title = request.form.get("album_title", "").strip() or None
+        album_title = request.form.get("album_title", "").strip()
         note = request.form.get("note", "").strip() or None
 
         if not artist_name:
             flash("Artist name is required.", "danger")
+            return redirect(url_for("new_request"))
+
+        if not album_title:
+            flash("Album title is required. Please specify one album at a time.", "danger")
             return redirect(url_for("new_request"))
 
         tag = build_user_tag(user["username"])
