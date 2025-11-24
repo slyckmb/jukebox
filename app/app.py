@@ -93,8 +93,11 @@ def init_db():
         username        TEXT NOT NULL UNIQUE,
         password_hash   TEXT NOT NULL,
         is_admin        INTEGER NOT NULL DEFAULT 0,
+        email           TEXT,
         created_at      TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL;
 
     CREATE TABLE IF NOT EXISTS requests (
         id                  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,18 +132,30 @@ def startup():
     init_db()
     # Auto-create an initial admin user if none exist
     with closing(get_db()) as conn:
-        cur = conn.execute("SELECT COUNT(*) AS c FROM users")
-        row = cur.fetchone()
-        user_count = row["c"] if row else 0
-        if user_count == 0:
+        # Check if admin user exists
+        cur = conn.execute("SELECT id FROM users WHERE username = 'admin'")
+        admin_exists = cur.fetchone()
+
+        if not admin_exists:
+            # Create admin user with unique email
             conn.execute(
-                "INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)",
-                ("admin", generate_password_hash("admin"), 1),
+                "INSERT INTO users (username, password_hash, is_admin, email) VALUES (?, ?, ?, ?)",
+                ("admin", generate_password_hash("admin"), 1, "admin@bikejeepyoga.com"),
             )
             conn.commit()
             app.logger.warning(
-                "Jukebox: created default admin user 'admin' with password 'admin'. Change this ASAP."
+                "Jukebox: created default admin user 'admin' with password 'admin'. "
+                "CHANGE THIS IMMEDIATELY via password change feature!"
             )
+        else:
+            # Check if admin is still using default password
+            cur = conn.execute("SELECT password_hash FROM users WHERE username = 'admin'")
+            row = cur.fetchone()
+            if row and check_password_hash(row["password_hash"], "admin"):
+                app.logger.error(
+                    "SECURITY WARNING: Admin user still has default password 'admin'! "
+                    "Change it immediately at /change-password"
+                )
     _startup_done = True
 
 
@@ -358,6 +373,61 @@ def create_user():
         return redirect(url_for("list_requests"))
 
     return render_template("create_user.html")
+
+
+@app.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    user = current_user()
+    if not user:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        current_pw = request.form.get("current_password", "").strip()
+        new_pw = request.form.get("new_password", "").strip()
+        confirm_pw = request.form.get("confirm_password", "").strip()
+
+        # Validation
+        if not current_pw or not new_pw or not confirm_pw:
+            flash("All fields are required.", "danger")
+            return redirect(url_for("change_password"))
+
+        # Verify current password
+        with closing(get_db()) as conn:
+            cur = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user["id"],))
+            row = cur.fetchone()
+
+        if not row or not check_password_hash(row["password_hash"], current_pw):
+            flash("Current password is incorrect.", "danger")
+            return redirect(url_for("change_password"))
+
+        # Validate new password
+        if len(new_pw) < 8:
+            flash("New password must be at least 8 characters.", "danger")
+            return redirect(url_for("change_password"))
+
+        if new_pw != confirm_pw:
+            flash("New passwords do not match.", "danger")
+            return redirect(url_for("change_password"))
+
+        if new_pw == current_pw:
+            flash("New password must be different from current password.", "danger")
+            return redirect(url_for("change_password"))
+
+        # Update password
+        new_hash = generate_password_hash(new_pw)
+        with closing(get_db()) as conn:
+            conn.execute(
+                "UPDATE users SET password_hash = ? WHERE id = ?",
+                (new_hash, user["id"])
+            )
+            conn.commit()
+
+        app.logger.info(f"Password changed for user: {user['username']}")
+        flash("Password changed successfully.", "success")
+        return redirect(url_for("list_requests"))
+
+    return render_template("change_password.html")
 
 
 def _render_requests_page(user):
