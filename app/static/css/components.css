@@ -1,0 +1,89 @@
+/* ============================================================================
+   Jukebox Components CSS - Shared Component Styles
+   ============================================================================ */
+
+/* Page Header Styles (shared across pages) */
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-header h1 {
+  font-size: var(--font-xl);
+  margin: 0;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--text-primary);
+  font-size: 24px;
+  transition: background 0.2s;
+}
+
+.back-button:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Form Styles (shared) */
+.form-hint {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  margin: var(--spacing-xs) 0 0 0;
+}
+
+.required {
+  color: var(--danger);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+
+.form-actions .btn {
+  flex: 1;
+}
+
+/* Checkbox Styles */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  margin: 0;
+}
+
+.checkbox-input {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.checkbox-text {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Form Validation */
+input:invalid:not(:placeholder-shown),
+textarea:invalid:not(:placeholder-shown) {
+  border-color: var(--danger);
+}
+
+input:valid:not(:placeholder-shown) {
+  border-color: var(--success);
+}

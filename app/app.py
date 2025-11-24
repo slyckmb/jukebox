@@ -358,21 +358,7 @@ def create_user():
         flash(f"User '{username}' created.", "success")
         return redirect(url_for("list_requests"))
 
-    return render_template_string(
-        """
-        <h1>Create User</h1>
-        <form method="POST">
-          <label>Username:</label><br>
-          <input name="username" /><br><br>
-          <label>Password:</label><br>
-          <input name="password" type="password" /><br><br>
-          <label>Is Admin?</label>
-          <input type="checkbox" name="is_admin" /><br><br>
-          <button type="submit">Create</button>
-        </form>
-        <p><a href="{{ url_for('list_requests') }}">Back to requests</a></p>
-        """
-    )
+    return render_template("create_user.html")
 
 
 def _render_requests_page(user):
