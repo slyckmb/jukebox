@@ -10,6 +10,8 @@
 
 Successfully implemented duplicate artist/album detection to prevent users from requesting music that already exists in their Lidarr library. Users now receive immediate feedback when an artist already exists, along with links to listen on their configured media servers.
 
+**Additional Enhancement**: Album specification is now required for all requests. Users must specify one album at a time - artist-only requests are no longer allowed.
+
 ---
 
 ## What Was Accomplished
@@ -296,6 +298,9 @@ NAVIDROME_URL=https://navidrome.bikejeepyoga.com
 - [x] Documentation updated
 - [x] Python syntax validated
 - [x] No regressions in existing functionality
+- [x] Album field now required (HTML + server-side validation)
+- [x] Container rebuilt and tested with updates
+- [x] "One album at a time" policy enforced
 
 ---
 

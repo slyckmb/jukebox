@@ -31,8 +31,16 @@
 - ✅ Dark mode (system preference)
 - ✅ User-friendly error messages (v0.4.0 Stage 1)
 - ✅ Duplicate artist/album detection (v0.4.0 Stage 2)
+- ✅ Required album specification - one album at a time (v0.4.0)
 
 **Recent Changes**
+
+**v0.4.0 Album Requirement (2025-11-24)**:
+- **Required Album Field**: Album title now mandatory for all requests
+- **No Artist-Only Requests**: Prevents submission without album specification
+- **Server-Side Validation**: Backend enforces "one album at a time" policy
+- **Form Validation**: HTML5 required attribute + clear error messages
+- **User Guidance**: Updated hint text to clarify requirement
 
 **v0.4.0 Stage 2 (2025-11-24) - Duplicate Detection**:
 - **Artist Existence Check**: Check if artist already exists in Lidarr before adding

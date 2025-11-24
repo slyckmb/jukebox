@@ -1,21 +1,23 @@
 # Jukebox - Music Request Portal
 
-**Version**: 0.3.0
-**Status**: Production Ready ✅
+**Version**: 0.4.0-dev
+**Status**: Active Development 🚧
 
-A simple, elegant music request portal with Lidarr integration. Built with Flask, designed mobile-first, secured with Cloudflare Zero Trust Access.
+A simple, elegant music request portal with Lidarr integration. Built with Flask, designed mobile-first, secured with Cloudflare Zero Trust Access. Users request one album at a time with duplicate detection and user-friendly error handling.
 
 ---
 
 ## Features
 
 - ✅ **User Authentication** - Per-user accounts with password management
-- ✅ **Music Requests** - Submit artist/album requests with notes
+- ✅ **Music Requests** - Submit album requests (one at a time, required)
 - ✅ **Lidarr Integration** - Automatic artist lookup and library management
+- ✅ **Duplicate Detection** - Check if artist already exists before adding (v0.4.0)
+- ✅ **Error Handling** - User-friendly error messages instead of technical JSON (v0.4.0)
+- ✅ **Media Server Links** - Direct links to Plex/Jellyfin/Navidrome for existing music
 - ✅ **Mobile-First UI** - Responsive design optimized for phones and tablets
 - ✅ **Security Enhanced** - Cloudflare Zero Trust Access with MFA
 - ✅ **Request Tracking** - Monitor request status (new, submitted, failed, existing)
-- ✅ **Admin Features** - User management, bulk operations (coming in v0.4.0)
 
 ---
 
