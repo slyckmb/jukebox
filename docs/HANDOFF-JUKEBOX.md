@@ -1,8 +1,8 @@
 # Jukebox Handoff – Current Status
 
-**Version**: 0.3.0
+**Version**: 0.4.0-dev (Stage 1 Complete)
 **Last Updated**: 2025-11-24
-**Status**: Production - Security Enhanced ✅
+**Status**: Development - Error Handling Enhanced ✅
 **Repository**: https://github.com/slyckmb/jukebox
 
 ---
@@ -29,18 +29,26 @@
 - ✅ Mobile-first responsive UI (v0.2.0)
 - ✅ Card-based layouts, toast notifications, FAB + bottom nav
 - ✅ Dark mode (system preference)
+- ✅ User-friendly error messages (v0.4.0 Stage 1)
 
-**Recent Changes (v0.3.0 - 2025-11-24)**
-- **Security Enhancements**:
-  - Removed default credentials disclosure from login page
-  - Fixed admin user creation (now created automatically on startup)
-  - Implemented password change feature with comprehensive validation
-  - Added email field to users table for Cloudflare Access sync
-  - Configured Cloudflare Zero Trust Access (OAuth + MFA + geo-restrictions)
-  - Created email management automation (`manage-jukebox-access.sh`)
-  - Conducted comprehensive security audit (23/23 controls passed)
-- **Database Migration**: Added email column to users table
-- **Documentation**: Security audit report, enhancement plan, feature specs
+**Recent Changes**
+
+**v0.4.0 Stage 1 (2025-11-24) - Error Message Cleanup**:
+- **Error Parsing Module**: Created `error_parser.py` for user-friendly error messages
+- **JSON Error Handling**: Parse Lidarr JSON validation errors and extract meaningful info
+- **Pattern Matching**: Recognize common errors (404, timeout, connection, duplicate, etc.)
+- **Message Truncation**: Limit error messages to 150 characters with intelligent truncation
+- **UI Enhancement**: Improved error display with better word wrapping and mobile support
+- **Testing**: Comprehensive test suite with 12 test scenarios (all passing)
+
+**v0.3.0 (2025-11-24) - Security Enhancements**:
+- Removed default credentials disclosure from login page
+- Fixed admin user creation (now created automatically on startup)
+- Implemented password change feature with comprehensive validation
+- Added email field to users table for Cloudflare Access sync
+- Configured Cloudflare Zero Trust Access (OAuth + MFA + geo-restrictions)
+- Created email management automation (`manage-jukebox-access.sh`)
+- Conducted comprehensive security audit (23/23 controls passed)
 
 **Secrets**
 - Flask secret: `/mnt/config/secrets/jukebox/env`

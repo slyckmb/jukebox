@@ -29,6 +29,9 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Import error parser for user-friendly error messages
+from error_parser import parse_lidarr_error, parse_artist_lookup_error, parse_tag_error
+
 # --- Configuration via environment ---------------------------------------------------
 
 
@@ -502,12 +505,14 @@ def new_request():
 
         with closing(get_db()) as conn:
             if err:
+                # Parse error for user-friendly message
+                friendly_error = parse_lidarr_error(err)
                 conn.execute(
                     "UPDATE requests SET status = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                    ("failed", err, datetime.utcnow().isoformat(), req_id),
+                    ("failed", friendly_error, datetime.utcnow().isoformat(), req_id),
                 )
                 conn.commit()
-                flash(f"Failed to send request to Lidarr: {err}", "danger")
+                flash(f"Failed to send request to Lidarr: {friendly_error}", "danger")
             else:
                 lidarr_artist_id = data.get("id") if data else None
                 conn.execute(

@@ -223,6 +223,7 @@
 .error-message {
   display: flex;
   gap: var(--spacing-sm);
+  align-items: flex-start;
   padding: var(--spacing-sm);
   background: rgba(239, 68, 68, 0.1);
   border-left: 3px solid var(--danger);
@@ -230,6 +231,18 @@
   margin-top: var(--spacing-sm);
   font-size: var(--font-sm);
   color: var(--danger);
+}
+
+.error-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.error-text {
+  flex: 1;
+  word-break: break-word;
+  line-height: 1.5;
 }
 
 /* Empty State */
