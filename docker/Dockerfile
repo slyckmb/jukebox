@@ -10,7 +10,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY vendor /tmp/vendor
 RUN pip install --no-cache-dir --no-index --find-links /tmp/vendor flask requests && rm -rf /tmp/vendor
 
+# Copy application files
 COPY app/app.py /app/app.py
+COPY app/templates /app/templates
+COPY app/static /app/static
 
 # DB directory
 RUN mkdir -p /app/data

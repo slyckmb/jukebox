@@ -21,6 +21,7 @@ from flask import (
     Flask,
     request,
     render_template_string,
+    render_template,
     redirect,
     url_for,
     session,
@@ -316,18 +317,7 @@ def login():
 
         flash("Invalid username or password.", "danger")
 
-    return render_template_string(
-        """
-        <h1>Jukebox Login</h1>
-        <form method="POST">
-          <label>Username:</label><br>
-          <input name="username" /><br>
-          <label>Password:</label><br>
-          <input name="password" type="password" /><br><br>
-          <button type="submit">Login</button>
-        </form>
-        """
-    )
+    return render_template("login.html")
 
 
 @app.route("/logout", methods=["POST"])
