@@ -20,7 +20,6 @@ import requests
 from flask import (
     Flask,
     request,
-    render_template_string,
     render_template,
     redirect,
     url_for,
