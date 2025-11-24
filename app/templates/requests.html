@@ -245,6 +245,72 @@
   line-height: 1.5;
 }
 
+/* Existing Status Info */
+.existing-info {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: flex-start;
+  padding: var(--spacing-sm);
+  background: rgba(16, 185, 129, 0.1);
+  border-left: 3px solid var(--status-submitted);
+  border-radius: var(--radius-sm);
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-sm);
+  color: var(--status-submitted);
+}
+
+.existing-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.existing-text {
+  flex: 1;
+}
+
+.existing-text p {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-weight: 600;
+}
+
+.existing-links {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.media-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--status-submitted);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s, opacity 0.2s;
+  line-height: 1.5;
+}
+
+.media-btn:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+  color: white;
+}
+
+.plex-btn {
+  background: #e5a00d;
+}
+
+.jellyfin-btn {
+  background: #00a4dc;
+}
+
+.navidrome-btn {
+  background: #6b46c1;
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;

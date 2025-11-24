@@ -30,16 +30,21 @@
 - ✅ Card-based layouts, toast notifications, FAB + bottom nav
 - ✅ Dark mode (system preference)
 - ✅ User-friendly error messages (v0.4.0 Stage 1)
+- ✅ Duplicate artist/album detection (v0.4.0 Stage 2)
 
 **Recent Changes**
 
+**v0.4.0 Stage 2 (2025-11-24) - Duplicate Detection**:
+- **Artist Existence Check**: Check if artist already exists in Lidarr before adding
+- **'Existing' Status**: New status for requests where music already available
+- **Media Server Links**: Display links to Plex/Jellyfin/Navidrome for existing music
+- **Graceful Handling**: Friendly messages when duplicates detected
+- **Configuration**: Added PLEX_URL, JELLYFIN_URL, NAVIDROME_URL environment variables
+- **UI Components**: New existing-info display with Listen Now buttons
+
 **v0.4.0 Stage 1 (2025-11-24) - Error Message Cleanup**:
-- **Error Parsing Module**: Created `error_parser.py` for user-friendly error messages
-- **JSON Error Handling**: Parse Lidarr JSON validation errors and extract meaningful info
-- **Pattern Matching**: Recognize common errors (404, timeout, connection, duplicate, etc.)
-- **Message Truncation**: Limit error messages to 150 characters with intelligent truncation
-- **UI Enhancement**: Improved error display with better word wrapping and mobile support
-- **Testing**: Comprehensive test suite with 12 test scenarios (all passing)
+- Error Parsing Module, JSON Error Handling, Pattern Matching
+- Message Truncation, UI Enhancement, Testing (12 scenarios)
 
 **v0.3.0 (2025-11-24) - Security Enhancements**:
 - Removed default credentials disclosure from login page

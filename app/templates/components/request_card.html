@@ -26,7 +26,33 @@
   <p class="card-note">{{ req.note }}</p>
   {% endif %}
 
-  {% if req.last_error %}
+  {% if req.status == 'existing' %}
+  <div class="existing-info">
+    <span class="existing-icon">✓</span>
+    <div class="existing-text">
+      <p>{{ req.last_error }}</p>
+      {% if media_servers.plex or media_servers.jellyfin or media_servers.navidrome %}
+      <div class="existing-links">
+        {% if media_servers.plex %}
+        <a href="{{ media_servers.plex }}/#!/search?query={{ req.artist_name | urlencode }}" target="_blank" class="media-btn plex-btn">
+          🎬 Plex
+        </a>
+        {% endif %}
+        {% if media_servers.jellyfin %}
+        <a href="{{ media_servers.jellyfin }}/#!/search?query={{ req.artist_name | urlencode }}" target="_blank" class="media-btn jellyfin-btn">
+          🎞️ Jellyfin
+        </a>
+        {% endif %}
+        {% if media_servers.navidrome %}
+        <a href="{{ media_servers.navidrome }}/app/#!/search/{{ req.artist_name | urlencode }}" target="_blank" class="media-btn navidrome-btn">
+          🎵 Navidrome
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% elif req.last_error %}
   <div class="error-message">
     <span class="error-icon">⚠️</span>
     <span class="error-text">{{ req.last_error }}</span>

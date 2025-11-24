@@ -66,6 +66,11 @@ MUSIC_ROOT_BASE = os.environ.get("MUSIC_ROOT_BASE", "/data/media/music")
 DB_PATH = os.environ.get("DB_PATH", "/app/data/requests.db")
 SECRET_KEY = _get_secret_env("FLASK_SECRET_KEY", "CHANGE_ME_IN_PROD_JUKEBOX")
 
+# Media server URLs (optional, for "Listen Now" links)
+PLEX_URL = os.environ.get("PLEX_URL", "")
+JELLYFIN_URL = os.environ.get("JELLYFIN_URL", "")
+NAVIDROME_URL = os.environ.get("NAVIDROME_URL", "")
+
 if not LIDARR_API_KEY:
     raise RuntimeError("LIDARR_API_KEY must be set for Jukebox to talk to Lidarr.")
 
@@ -258,6 +263,35 @@ def lookup_artist(artist_name: str):
     return data[0], None
 
 
+def check_artist_exists_in_lidarr(foreign_artist_id: str):
+    """
+    Check if artist already exists in Lidarr library.
+
+    Args:
+        foreign_artist_id: MusicBrainz artist ID (e.g., "5b11f4ce-a62d-471e-81fc-a69a8278c7da")
+
+    Returns:
+        (exists: bool, artist_data: dict, error: str)
+    """
+    url = f"{LIDARR_URL}/artist"
+    try:
+        resp = requests.get(url, params={"apikey": LIDARR_API_KEY}, timeout=10)
+    except Exception as exc:
+        return False, None, f"Connection error: {exc}"
+
+    if resp.status_code != 200:
+        return False, None, f"Lidarr API error {resp.status_code}"
+
+    try:
+        artists = resp.json()
+        for artist in artists:
+            if artist.get("foreignArtistId") == foreign_artist_id:
+                return True, artist, None
+        return False, None, None
+    except Exception as exc:
+        return False, None, f"Parse error: {exc}"
+
+
 def create_artist_in_lidarr(username: str, artist_name: str):
     """
     Create/monitor an artist in Lidarr for a specific user.
@@ -448,7 +482,14 @@ def _render_requests_page(user):
             )
         rows = cur.fetchall()
 
-    return render_template("requests.html", user=user, rows=rows)
+    # Pass media server URLs to template
+    media_servers = {
+        "plex": PLEX_URL,
+        "jellyfin": JELLYFIN_URL,
+        "navidrome": NAVIDROME_URL,
+    }
+
+    return render_template("requests.html", user=user, rows=rows, media_servers=media_servers)
 
 
 @app.route("/", methods=["GET"])
@@ -501,6 +542,47 @@ def new_request():
             req_id = cur.lastrowid
             conn.commit()
 
+        # First, lookup artist to get foreign ID
+        artist_data, lookup_err = lookup_artist(artist_name)
+        if lookup_err:
+            # Artist not found in MusicBrainz - fail the request
+            friendly_error = parse_artist_lookup_error(lookup_err)
+            with closing(get_db()) as conn:
+                conn.execute(
+                    "UPDATE requests SET status = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                    ("failed", friendly_error, datetime.utcnow().isoformat(), req_id),
+                )
+                conn.commit()
+            flash(f"Artist lookup failed: {friendly_error}", "danger")
+            return redirect(url_for("list_requests"))
+
+        foreign_artist_id = artist_data.get("foreignArtistId")
+        artist_display_name = artist_data.get("artistName", artist_name)
+
+        # Check if artist already exists in Lidarr
+        exists, existing_artist, check_error = check_artist_exists_in_lidarr(foreign_artist_id)
+
+        if check_error:
+            # Non-fatal: Log warning and continue with add attempt
+            app.logger.warning(f"Could not check for existing artist: {check_error}")
+
+        if exists:
+            # Artist already exists!
+            lidarr_artist_id = existing_artist.get("id")
+            status_msg = f"'{artist_display_name}' already exists in your library! Check Plex, Jellyfin, or Navidrome to listen now."
+
+            # Update request status to 'existing'
+            with closing(get_db()) as conn:
+                conn.execute(
+                    "UPDATE requests SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                    ("existing", lidarr_artist_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                )
+                conn.commit()
+
+            flash(f"✓ {status_msg}", "info")
+            return redirect(url_for("list_requests"))
+
+        # Artist doesn't exist - continue with normal add flow
         data, err = create_artist_in_lidarr(user["username"], artist_name)
 
         with closing(get_db()) as conn:
