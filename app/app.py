@@ -468,20 +468,7 @@ def new_request():
 
         return redirect(url_for("list_requests"))
 
-    return render_template_string(
-        """
-        <h1>Jukebox – New Request</h1>
-        <form method="POST">
-          <label>Artist Name (required):</label><br>
-          <input name="artist_name" size="40" /><br><br>
-          <label>Album Title (optional):</label><br>
-          <input name="album_title" size="40" /><br><br>
-          <label>Note (optional):</label><br>
-          <textarea name="note" rows="3" cols="40"></textarea><br><br>
-          <button type="submit">Submit Request</button>
-        </form>
-        """
-    )
+    return render_template("new_request.html")
 
 
 # --- JSON API for Postman / programmatic use ----------------------------------------

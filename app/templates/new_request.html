@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}New Request - Jukebox{% endblock %}
+
+{% block content %}
+<div class="new-request-page">
+  <!-- Header -->
+  <header class="page-header">
+    <a href="{{ url_for('list_requests') }}" class="back-button" aria-label="Back">
+      <span>←</span>
+    </a>
+    <h1>New Request</h1>
+    <div></div> <!-- Spacer for flex layout -->
+  </header>
+
+  <!-- Form -->
+  <div class="container">
+    <form method="POST" class="request-form" id="requestForm">
+      <div class="form-group">
+        <label for="artist_name">
+          Artist Name
+          <span class="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="artist_name"
+          name="artist_name"
+          required
+          autofocus
+          placeholder="e.g., Pink Floyd"
+          aria-describedby="artist-hint"
+        >
+        <p id="artist-hint" class="form-hint">Enter the artist or band name</p>
+      </div>
+
+      <div class="form-group">
+        <label for="album_title">Album Title (optional)</label>
+        <input
+          type="text"
+          id="album_title"
+          name="album_title"
+          placeholder="e.g., The Wall"
+          aria-describedby="album-hint"
+        >
+        <p id="album-hint" class="form-hint">Leave blank to request all albums</p>
+      </div>
+
+      <div class="form-group">
+        <label for="note">Note (optional)</label>
+        <textarea
+          id="note"
+          name="note"
+          rows="4"
+          placeholder="Any special requests or notes..."
+          maxlength="500"
+          aria-describedby="note-hint"
+        ></textarea>
+        <p id="note-hint" class="form-hint">
+          <span id="charCount">0</span>/500 characters
+        </p>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('list_requests') }}" class="btn btn-secondary">
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+          Submit Request
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.new-request-page {
+  min-height: 100vh;
+  background: var(--bg-secondary);
+}
+
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-header h1 {
+  font-size: var(--font-xl);
+  margin: 0;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--text-primary);
+  font-size: 24px;
+  transition: background 0.2s;
+}
+
+.back-button:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.request-form {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.required {
+  color: var(--danger);
+}
+
+.form-hint {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  margin: var(--spacing-xs) 0 0 0;
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+
+.form-actions .btn {
+  flex: 1;
+}
+
+/* Character counter */
+#charCount {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Form validation styles */
+input:invalid:not(:placeholder-shown),
+textarea:invalid:not(:placeholder-shown) {
+  border-color: var(--danger);
+}
+
+input:valid:not(:placeholder-shown) {
+  border-color: var(--success);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Character counter for note field
+document.addEventListener('DOMContentLoaded', () => {
+  const noteField = document.getElementById('note');
+  const charCount = document.getElementById('charCount');
+
+  if (noteField && charCount) {
+    noteField.addEventListener('input', () => {
+      charCount.textContent = noteField.value.length;
+    });
+  }
+
+  // Form validation
+  const form = document.getElementById('requestForm');
+  const artistField = document.getElementById('artist_name');
+
+  if (form && artistField) {
+    form.addEventListener('submit', (e) => {
+      if (!artistField.value.trim()) {
+        e.preventDefault();
+        showToast('Artist name is required', 'danger');
+        artistField.focus();
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
