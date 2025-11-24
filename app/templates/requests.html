@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% from 'components/request_card.html' import request_card %}
+
+{% block title %}Requests - Jukebox{% endblock %}
+
+{% block content %}
+<div class="requests-page">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1>🎵 Jukebox</h1>
+      <p class="user-info">{{ user.username }}</p>
+    </div>
+    <form method="POST" action="{{ url_for('logout') }}" class="logout-form">
+      <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
+    </form>
+  </header>
+
+  <!-- Request List -->
+  <div class="container">
+    {% if rows|length == 0 %}
+    <div class="empty-state">
+      <div class="empty-icon">🎵</div>
+      <h2>No requests yet</h2>
+      <p class="text-secondary">Tap the + button to request music</p>
+    </div>
+    {% else %}
+    <div class="request-list">
+      {% for req in rows %}
+        {{ request_card(req) }}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Floating Action Button -->
+  <a href="{{ url_for('new_request') }}" class="fab" aria-label="New Request">
+    <span class="fab-icon">+</span>
+  </a>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <a href="{{ url_for('list_requests') }}" class="nav-item active">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </a>
+    <a href="{{ url_for('new_request') }}" class="nav-item">
+      <span class="nav-icon">➕</span>
+      <span class="nav-label">New</span>
+    </a>
+    {% if user.is_admin %}
+    <a href="{{ url_for('create_user') }}" class="nav-item">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Users</span>
+    </a>
+    {% endif %}
+  </nav>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.requests-page {
+  min-height: 100vh;
+  padding-bottom: var(--bottom-nav-height);
+}
+
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-content h1 {
+  font-size: var(--font-xl);
+  margin: 0;
+}
+
+.user-info {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.logout-form {
+  margin: 0;
+}
+
+.btn-sm {
+  min-height: 36px;
+  padding: 8px 16px;
+  font-size: var(--font-sm);
+}
+
+/* Request Cards */
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+}
+
+.request-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.request-card:active {
+  transform: scale(0.98);
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.artist-name {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+}
+
+.album-title {
+  font-size: var(--font-base);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.card-meta {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-note {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: var(--spacing-sm) 0 0 0;
+  padding: var(--spacing-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.status-new {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--status-new);
+}
+
+.status-submitted {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--status-submitted);
+}
+
+.status-failed {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--status-failed);
+}
+
+.status-existing {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--status-existing);
+}
+
+/* Error Message */
+.error-message {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-sm);
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-sm);
+  color: var(--danger);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-md);
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-state h2 {
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Floating Action Button */
+.fab {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + var(--spacing-md));
+  right: var(--spacing-md);
+  width: 56px;
+  height: 56px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  z-index: 90;
+  transition: transform 0.2s;
+}
+
+.fab:hover {
+  transform: scale(1.1);
+  color: white;
+}
+
+.fab-icon {
+  font-size: var(--font-2xl);
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottom-nav-height);
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--spacing-xs);
+  color: var(--text-secondary);
+  min-width: 64px;
+  transition: color 0.2s;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  color: var(--accent);
+}
+
+.nav-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.nav-label {
+  font-size: var(--font-xs);
+  font-weight: 500;
+}
+
+/* Desktop adjustments */
+@media (min-width: 768px) {
+  .fab {
+    bottom: var(--spacing-xl);
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  .requests-page {
+    padding-bottom: 0;
+  }
+}
+</style>
+{% endblock %}

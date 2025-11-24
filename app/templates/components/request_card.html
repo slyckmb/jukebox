@@ -1,0 +1,36 @@
+{% from 'components/status_badge.html' import status_badge %}
+
+{% macro request_card(req) %}
+<div class="request-card" data-status="{{ req.status }}">
+  <div class="card-header">
+    <h3 class="artist-name">{{ req.artist_name }}</h3>
+    {{ status_badge(req.status) }}
+  </div>
+
+  {% if req.album_title %}
+  <p class="album-title">{{ req.album_title }}</p>
+  {% endif %}
+
+  <div class="card-meta">
+    <span class="meta-item">
+      <span class="meta-icon">👤</span>
+      <span>{{ req.username }}</span>
+    </span>
+    <span class="meta-item">
+      <span class="meta-icon">📅</span>
+      <span>{{ req.created_at[:10] }}</span>
+    </span>
+  </div>
+
+  {% if req.note %}
+  <p class="card-note">{{ req.note }}</p>
+  {% endif %}
+
+  {% if req.last_error %}
+  <div class="error-message">
+    <span class="error-icon">⚠️</span>
+    <span class="error-text">{{ req.last_error }}</span>
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}

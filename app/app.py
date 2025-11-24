@@ -390,39 +390,7 @@ def _render_requests_page(user):
             )
         rows = cur.fetchall()
 
-    return render_template_string(
-        """
-        <h1>Jukebox – Your Requests</h1>
-        <p>Logged in as: {{ user.username }}</p>
-        <form method="POST" action="{{ url_for('logout') }}">
-          <button type="submit">Logout</button>
-        </form>
-        <p><a href="{{ url_for('new_request') }}">New Request</a></p>
-        {% if user.is_admin %}
-        <p><a href="{{ url_for('create_user') }}">Create User</a></p>
-        {% endif %}
-        <table border="1" cellspacing="0" cellpadding="4">
-          <tr>
-            <th>ID</th><th>User</th><th>Artist</th><th>Album</th>
-            <th>Status</th><th>Created</th><th>Updated</th><th>Note</th>
-          </tr>
-          {% for r in rows %}
-          <tr>
-            <td>{{ r.id }}</td>
-            <td>{{ r.username }}</td>
-            <td>{{ r.artist_name }}</td>
-            <td>{{ r.album_title or '' }}</td>
-            <td>{{ r.status }}</td>
-            <td>{{ r.created_at }}</td>
-            <td>{{ r.updated_at }}</td>
-            <td>{{ r.note or '' }}</td>
-          </tr>
-          {% endfor %}
-        </table>
-        """,
-        user=user,
-        rows=rows,
-    )
+    return render_template("requests.html", user=user, rows=rows)
 
 
 @app.route("/", methods=["GET"])

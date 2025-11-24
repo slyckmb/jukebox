@@ -1,0 +1,14 @@
+{% macro status_badge(status) %}
+<span class="status-badge status-{{ status }}">
+  {% if status == 'new' %}
+    <span class="status-icon">🔵</span>
+  {% elif status == 'submitted' %}
+    <span class="status-icon">✓</span>
+  {% elif status == 'failed' %}
+    <span class="status-icon">✕</span>
+  {% elif status == 'existing' %}
+    <span class="status-icon">ℹ</span>
+  {% endif %}
+  <span class="status-text">{{ status|upper }}</span>
+</span>
+{% endmacro %}
