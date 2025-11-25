@@ -536,6 +536,211 @@ def set_album_monitored(album_id: int, monitored: bool = True):
         return False, f"Parse error: {exc}"
 
 
+# --- Artist Staging Functions --------------------------------------------------------
+
+
+# Configuration
+STAGING_REFRESH_DAYS = int(os.getenv("STAGING_REFRESH_DAYS", "7"))
+
+
+def create_artist_in_staging(artist_name: str, mb_artist_id: str, user_id: int):
+    """
+    Add artist to Lidarr staging area (admin space, unmonitored).
+
+    Returns (lidarr_artist_id, error)
+    """
+    # Use admin root folder and staging tag
+    root_folder = build_user_root_folder("admin")
+    tag_label = "staging"
+    tag_id, tag_err = get_or_create_tag_id(tag_label)
+    if tag_err:
+        return None, tag_err
+
+    # Lookup artist in MusicBrainz
+    artist_data, lookup_err = lookup_artist(artist_name)
+    if lookup_err:
+        return None, lookup_err
+
+    foreign_id = artist_data.get("foreignArtistId")
+    name = artist_data.get("artistName") or artist_name
+    path = f"{root_folder}/{name}"
+
+    payload = {
+        "artistName": name,
+        "monitored": False,  # KEY: Not monitored in staging
+        "qualityProfileId": LIDARR_QUALITY_PROFILE_ID,
+        "metadataProfileId": LIDARR_METADATA_PROFILE_ID,
+        "rootFolderPath": root_folder,
+        "tags": [tag_id] if tag_id is not None else [],
+        "foreignArtistId": foreign_id,
+        "addOptions": {
+            "monitor": "none",  # No albums monitored
+            "searchForMissingAlbums": False  # Don't search
+        },
+        "path": path,
+    }
+
+    url = f"{LIDARR_URL}/artist?apikey={LIDARR_API_KEY}"
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+    except Exception as exc:
+        return None, f"Lidarr request failed: {exc}"
+
+    if resp.status_code in (200, 201):
+        try:
+            data = resp.json()
+            lidarr_artist_id = data.get("id")
+
+            # Store in staging table
+            with closing(get_db()) as conn:
+                conn.execute(
+                    """INSERT INTO artist_staging
+                       (user_id, artist_name, lidarr_artist_id, mb_artist_id, created_at, last_refreshed_at, refresh_count)
+                       VALUES (?, ?, ?, ?, ?, ?, 0)""",
+                    (user_id, name, lidarr_artist_id, mb_artist_id,
+                     datetime.utcnow().isoformat(), datetime.utcnow().isoformat())
+                )
+                conn.commit()
+
+            app.logger.info(f"Created staging artist: {name} (Lidarr ID: {lidarr_artist_id})")
+            return lidarr_artist_id, None
+        except Exception as exc:
+            return None, f"Failed to save staging record: {exc}"
+
+    return None, f"Lidarr error {resp.status_code}: {resp.text}"
+
+
+def find_staging_artist(mb_artist_id: str):
+    """
+    Check if artist exists in staging.
+
+    Returns (staging_record, error)
+    """
+    try:
+        with closing(get_db()) as conn:
+            cur = conn.execute(
+                "SELECT * FROM artist_staging WHERE mb_artist_id = ?",
+                (mb_artist_id,)
+            )
+            row = cur.fetchone()
+            return row, None
+    except Exception as exc:
+        return None, f"Database error: {exc}"
+
+
+def trigger_artist_refresh(lidarr_artist_id: int):
+    """
+    Tell Lidarr to refresh artist metadata from MusicBrainz.
+
+    Returns (success: bool, error)
+    """
+    url = f"{LIDARR_URL}/command"
+    payload = {
+        "name": "RefreshArtist",
+        "artistId": lidarr_artist_id
+    }
+
+    try:
+        resp = requests.post(url, json=payload, params={"apikey": LIDARR_API_KEY}, timeout=10)
+
+        if resp.status_code in (201, 202):  # Command queued
+            # Update timestamp in DB
+            with closing(get_db()) as conn:
+                conn.execute(
+                    """UPDATE artist_staging
+                       SET last_refreshed_at = ?, refresh_count = refresh_count + 1
+                       WHERE lidarr_artist_id = ?""",
+                    (datetime.utcnow().isoformat(), lidarr_artist_id)
+                )
+                conn.commit()
+
+            app.logger.info(f"Triggered RefreshArtist for Lidarr ID {lidarr_artist_id}")
+            return True, None
+
+        return False, f"Lidarr command failed: {resp.status_code}"
+    except Exception as exc:
+        return False, f"Refresh request failed: {exc}"
+
+
+def get_artist_albums(lidarr_artist_id: int):
+    """
+    Get all albums for artist from Lidarr.
+
+    Returns (albums: list, error)
+    """
+    url = f"{LIDARR_URL}/album"
+    try:
+        resp = requests.get(
+            url,
+            params={"artistId": lidarr_artist_id, "apikey": LIDARR_API_KEY},
+            timeout=10
+        )
+
+        if resp.status_code == 200:
+            albums = resp.json()
+            # Return simplified album list
+            result = []
+            for album in albums:
+                result.append({
+                    "id": album.get("id"),
+                    "title": album.get("title"),
+                    "releaseDate": album.get("releaseDate"),
+                    "monitored": album.get("monitored", False),
+                    "statistics": album.get("statistics", {})
+                })
+            return result, None
+
+        return None, f"Lidarr error {resp.status_code}"
+    except Exception as exc:
+        return None, f"Failed to get albums: {exc}"
+
+
+def move_artist_to_user(lidarr_artist_id: int, username: str):
+    """
+    Move artist from staging to user space.
+    Updates rootFolderPath, path, and tags.
+
+    Returns (success: bool, error)
+    """
+    # Get current artist data
+    url = f"{LIDARR_URL}/artist/{lidarr_artist_id}"
+    try:
+        resp = requests.get(url, params={"apikey": LIDARR_API_KEY}, timeout=10)
+    except Exception as exc:
+        return False, f"Connection error: {exc}"
+
+    if resp.status_code != 200:
+        return False, f"Lidarr API error {resp.status_code}"
+
+    try:
+        artist_data = resp.json()
+
+        # Update fields for user space
+        user_root = build_user_root_folder(username)
+        user_tag_label = build_user_tag(username)
+        user_tag_id, tag_err = get_or_create_tag_id(user_tag_label)
+        if tag_err:
+            return False, tag_err
+
+        artist_name = artist_data.get("artistName")
+        artist_data["rootFolderPath"] = user_root
+        artist_data["path"] = f"{user_root}/{artist_name}"
+        artist_data["tags"] = [user_tag_id] if user_tag_id is not None else []
+
+        # Send PUT request to update
+        put_url = f"{LIDARR_URL}/artist/{lidarr_artist_id}?apikey={LIDARR_API_KEY}"
+        put_resp = requests.put(put_url, json=artist_data, timeout=10)
+
+        if put_resp.status_code in (200, 202):
+            app.logger.info(f"Moved artist {artist_name} (ID {lidarr_artist_id}) to user {username}")
+            return True, None
+
+        return False, f"Update failed with status {put_resp.status_code}: {put_resp.text}"
+
+    except Exception as exc:
+        return False, f"Move operation failed: {exc}"
+
+
 # --- Routes --------------------------------------------------------------------------
 
 
@@ -1077,6 +1282,97 @@ def search_album():
     except Exception as exc:
         app.logger.error(f"Album search error: {exc}")
         return jsonify({"results": []})
+
+
+@app.route("/api/artist/pull-albums", methods=["POST"])
+@login_required
+def pull_albums_api():
+    """
+    Trigger album pull for artist (add to staging or reuse existing).
+    Returns {status, lidarr_artist_id, message, state}
+    """
+    user = current_user()
+    data = request.get_json(force=True, silent=True) or {}
+
+    artist_name = (data.get("artist_name") or "").strip()
+    mb_artist_id = (data.get("mb_artist_id") or "").strip()
+
+    if not artist_name or not mb_artist_id:
+        return jsonify({"status": "error", "message": "artist_name and mb_artist_id required"}), 400
+
+    # Check if already in staging
+    staging_artist, staging_err = find_staging_artist(mb_artist_id)
+
+    if staging_err:
+        app.logger.error(f"Error checking staging: {staging_err}")
+        return jsonify({"status": "error", "message": staging_err}), 500
+
+    if staging_artist:
+        # Artist exists in staging
+        lidarr_artist_id = staging_artist["lidarr_artist_id"]
+        last_refresh = staging_artist["last_refreshed_at"]
+
+        if last_refresh:
+            last_refresh_dt = datetime.fromisoformat(last_refresh)
+            days_old = (datetime.utcnow() - last_refresh_dt).days
+        else:
+            days_old = 999
+
+        if days_old > STAGING_REFRESH_DAYS:
+            # Stale, trigger refresh
+            success, refresh_err = trigger_artist_refresh(lidarr_artist_id)
+            if not success:
+                app.logger.error(f"Refresh failed: {refresh_err}")
+
+            return jsonify({
+                "status": "ok",
+                "lidarr_artist_id": lidarr_artist_id,
+                "state": "refreshing",
+                "message": f"Refreshing {artist_name} (last updated {days_old} days ago)"
+            })
+        else:
+            # Fresh, use immediately
+            return jsonify({
+                "status": "ok",
+                "lidarr_artist_id": lidarr_artist_id,
+                "state": "ready",
+                "message": f"Using cached {artist_name}"
+            })
+    else:
+        # New artist, add to staging
+        lidarr_artist_id, add_err = create_artist_in_staging(artist_name, mb_artist_id, user["id"])
+
+        if add_err:
+            app.logger.error(f"Failed to create staging artist: {add_err}")
+            return jsonify({"status": "error", "message": add_err}), 500
+
+        return jsonify({
+            "status": "ok",
+            "lidarr_artist_id": lidarr_artist_id,
+            "state": "loading",
+            "message": f"Loading albums for {artist_name}"
+        })
+
+
+@app.route("/api/artist/albums/<int:lidarr_id>", methods=["GET"])
+@login_required
+def get_albums_api(lidarr_id):
+    """
+    Get album list for artist (used for polling).
+    Returns {albums: [...], ready: bool}
+    """
+    albums, err = get_artist_albums(lidarr_id)
+
+    if err:
+        return jsonify({"ready": False, "error": err}), 500
+
+    # Consider ready if we have albums
+    ready = len(albums) > 0
+
+    return jsonify({
+        "ready": ready,
+        "albums": albums
+    })
 
 
 @app.route("/api/login", methods=["POST"])
