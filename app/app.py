@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Jukebox – Lidarr Request Portal app.py v0.1.0 – Last updated: 2025-11-23T12:00:00-05:00
+# Jukebox – Lidarr Request Portal
 
 """
 Jukebox – a simple web front end for requesting music via Lidarr.
@@ -10,6 +10,8 @@ Features:
 - SQLite-backed request log
 - Forwards requests to Lidarr using API key and per-user root folders
 """
+
+__version__ = "0.6.0"
 
 import os
 import sqlite3
@@ -80,6 +82,12 @@ app = Flask(__name__,
 app.config["SECRET_KEY"] = SECRET_KEY
 
 _startup_done = False
+
+
+# Make version available to all templates
+@app.context_processor
+def inject_version():
+    return {"app_version": __version__}
 
 
 # --- DB helpers ----------------------------------------------------------------------
@@ -503,6 +511,7 @@ def find_album_in_artist(lidarr_artist_id: int, album_title: str):
 def set_album_monitored(album_id: int, monitored: bool = True):
     """
     Update an album's monitored status in Lidarr.
+    If setting to monitored=True, also triggers an album search.
 
     Returns:
         (success: bool, error: str)
@@ -528,12 +537,36 @@ def set_album_monitored(album_id: int, monitored: bool = True):
         put_resp = requests.put(put_url, json=album_data, timeout=10)
 
         if put_resp.status_code in (200, 202):
+            # If we just set album to monitored, trigger a search immediately
+            if monitored:
+                trigger_album_search(album_id)
             return True, None
 
         return False, f"Update failed with status {put_resp.status_code}: {put_resp.text}"
 
     except Exception as exc:
         return False, f"Parse error: {exc}"
+
+
+def trigger_album_search(album_id: int):
+    """
+    Trigger an album search in Lidarr to start download immediately.
+    This is a fire-and-forget operation - errors are logged but not returned.
+    """
+    url = f"{LIDARR_URL}/command"
+    payload = {
+        "name": "AlbumSearch",
+        "albumIds": [album_id]
+    }
+
+    try:
+        resp = requests.post(url, json=payload, params={"apikey": LIDARR_API_KEY}, timeout=10)
+        if resp.status_code in (201, 202):
+            app.logger.info(f"Triggered AlbumSearch for album ID {album_id}")
+        else:
+            app.logger.warning(f"AlbumSearch command failed with status {resp.status_code}")
+    except Exception as exc:
+        app.logger.warning(f"Failed to trigger AlbumSearch for album {album_id}: {exc}")
 
 
 # --- Artist Staging Functions --------------------------------------------------------
@@ -1043,8 +1076,17 @@ def new_request():
                     flash(f"✗ {status_msg}", "danger")
                     return redirect(url_for("list_requests"))
             else:
-                # Album is already monitored
-                status_msg = f"'{album_title}' by {artist_display_name} is already being monitored!"
+                # Album is already monitored - check if it's available or just requested
+                statistics = album_data.get("statistics", {})
+                track_count = statistics.get("trackCount", 0)
+
+                if track_count > 0:
+                    # Album has tracks - it's available
+                    status_msg = f"'{album_title}' by {artist_display_name} is already available!"
+                else:
+                    # Album is monitored but no tracks yet - still downloading/requested
+                    status_msg = f"'{album_title}' by {artist_display_name} is already requested!"
+
                 with closing(get_db()) as conn:
                     conn.execute(
                         "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
@@ -1113,8 +1155,17 @@ def new_request():
                         flash(f"✗ {status_msg}", "danger")
                         return redirect(url_for("list_requests"))
                 else:
-                    # Album is already monitored
-                    status_msg = f"'{album_title}' by {artist_display_name} is already being monitored!"
+                    # Album is already monitored - check if it's available or just requested
+                    statistics = album_data.get("statistics", {})
+                    track_count = statistics.get("trackCount", 0)
+
+                    if track_count > 0:
+                        # Album has tracks - it's available
+                        status_msg = f"'{album_title}' by {artist_display_name} is already available!"
+                    else:
+                        # Album is monitored but no tracks yet - still downloading/requested
+                        status_msg = f"'{album_title}' by {artist_display_name} is already requested!"
+
                     with closing(get_db()) as conn:
                         conn.execute(
                             "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",

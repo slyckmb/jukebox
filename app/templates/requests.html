@@ -8,7 +8,7 @@
   <!-- Header -->
   <header class="page-header">
     <div class="header-content">
-      <h1>🎵 Jukebox</h1>
+      <h1>🎵 Jukebox <span class="version-badge">v{{ app_version }}</span></h1>
       <p class="user-info">{{ user.username }}</p>
     </div>
     <div class="header-actions">
@@ -83,6 +83,19 @@
 .header-content h1 {
   font-size: var(--font-xl);
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.version-badge {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  background: var(--primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  vertical-align: middle;
 }
 
 .user-info {
