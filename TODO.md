@@ -6,16 +6,38 @@
 
 ## Active Tasks (Re-ranked by Impact & Effort)
 
-### Tier 1: Quick Wins (Stage 2 - Next!)
+### Tier 1: Artist Staging Workflow (Stage 3 - NEXT!)
 
-#### 1. Trigger search when flipping album to monitored ⚡ HIGH IMPACT
+#### 1. Artist Staging Workflow 🏗️ HIGHEST PRIORITY
+- [ ] **Phase 1**: Database migration (`artist_staging` table)
+- [ ] **Phase 2**: Backend helper functions (create, find, refresh, move)
+- [ ] **Phase 3**: Frontend UI ("Pull Albums" button, album dropdown)
+- [ ] **Phase 4**: API endpoints (`/pull-albums`, `/albums/{id}`)
+- [ ] **Phase 5**: Update request submission flow
+- [ ] **Phase 6**: Polling logic with exponential backoff
+- [ ] **Impact**: Solves "wrong artist" and "album not found" problems
+- [ ] **Effort**: 4-5 hours (large feature, well-scoped)
+- [ ] **Details**: See `docs/ARTIST-STAGING-REQUIREMENTS.md` and `docs/STAGE-3-PLAN.md`
+
+**Key Features**:
+- Two-phase commit (validate → pull → commit)
+- Admin staging area (no user clutter)
+- Staging reuse across users (performance)
+- Auto-refresh stale artists (7-day threshold)
+- Move to user space on commit
+
+---
+
+### Tier 2: Quick Wins (Stage 4 - After Staging)
+
+#### 2. Trigger search when flipping album to monitored ⚡ HIGH IMPACT
 - [ ] After setting album monitored=true, trigger Lidarr album search
 - [ ] Use Lidarr API command endpoint: `POST /command {"name":"AlbumSearch","albumIds":[...]}`
 - [ ] Ensures download starts immediately instead of waiting for RSS sync
 - [ ] **Impact**: Downloads start instantly, better user experience
 - [ ] **Effort**: 30 min (modify `set_album_monitored()` function)
 
-#### 2. Improve "already monitored" message ⚡ MEDIUM IMPACT
+#### 3. Improve "already monitored" message ⚡ MEDIUM IMPACT
 - [ ] Change message based on Lidarr album status:
   - If downloading/no tracks: "is already requested"
   - If has tracks: "is already available"
@@ -23,30 +45,13 @@
 - [ ] **Impact**: Clearer user feedback
 - [ ] **Effort**: 30 min (modify message logic in existing album flow)
 
-#### 3. Show version number in UI banner 🎯 LOW IMPACT
+#### 4. Show version number in UI banner 🎯 LOW IMPACT
 - [ ] Add version display to page header/banner
 - [ ] Read from app.py or environment variable
 - [ ] **Impact**: Better visibility of deployed version
 - [ ] **Effort**: 20 min (template + CSS change)
 
-**→ Proposed Stage 2: Tasks 1-3 (1.5 hours total)**
-
----
-
-### Tier 2: Medium Features (Stage 3)
-
-#### 4. Smart album list workflow (Lidarr-first) 🏗️ HIGH IMPACT
-- [ ] Use MusicBrainz ONLY to validate artist and get MB artist ID
-- [ ] If artist EXISTS in Lidarr: query Lidarr API for album list (faster, more accurate)
-- [ ] If artist NOT in Lidarr: add artist via API, wait for Lidarr to populate albums
-  - Show "Searching for albums..." loading state
-  - Poll Lidarr until albums are populated
-  - Then show album dropdown
-- [ ] **Impact**: Solves "Taylor Swift album not found" problem
-- [ ] **Effort**: 2-3 hours (backend + frontend changes, polling logic)
-- [ ] **Note**: This essentially implements the album dropdown (old task #3) with smarter logic
-
-**→ Proposed Stage 3: Task 4 (2-3 hours)**
+**→ Proposed Stage 4: Tasks 2-4 (1.5 hours total)**
 
 ---
 
@@ -71,7 +76,7 @@
 
 ### Tier 4: Strategic/Long-term
 
-#### 7. Build Local MusicBrainz Cache 🏗️ STRATEGIC
+#### 6. Build Local MusicBrainz Cache 🏗️ STRATEGIC
 - [ ] Design database schema for MB data cache
 - [ ] Store validated artist/album data from MB API
 - [ ] Check cache before hitting MB web API
@@ -79,19 +84,20 @@
 - [ ] **Impact**: High (performance, API rate limiting)
 - [ ] **Effort**: 3-4 hours (schema, migration, caching logic)
 
-#### 8. Debounce Search UX with Local Cache 🏗️ STRATEGIC
+#### 7. Debounce Search UX with Local Cache 🏗️ STRATEGIC
 - [ ] Bounce live text entry against local cache only
 - [ ] Add "Search MusicBrainz" button for web API hits
 - [ ] Improves UX and lowers MB API hit rate
-- [ ] **Dependencies**: Requires task #7 (local cache)
+- [ ] **Dependencies**: Requires task #6 (local cache)
 - [ ] **Impact**: Medium (UX refinement)
 - [ ] **Effort**: 2 hours
 
 ---
 
-### Removed (Superseded)
+### Superseded/Merged
 
-~~**3. Add Album Dropdown After Artist Validation**~~ → Superseded by task #4 (Smart album list workflow)
+~~**Old Task: Add Album Dropdown After Artist Validation**~~ → Merged into Task #1 (Artist Staging Workflow)
+~~**Old Task: Smart album list workflow (Lidarr-first)**~~ → Implemented as Task #1 (Artist Staging Workflow)
 
 ---
 

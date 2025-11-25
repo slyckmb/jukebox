@@ -9,26 +9,41 @@
 ## What You Need to Know
 
 ### Project Status
-- **v0.6.0 Stage 1 Complete**: Quick wins and search bug fixes deployed
+- **v0.6.0 Stage 1-2 Complete**: Quick wins, search fixes, planning done
+- **v0.6.0 Stage 3 Ready**: Artist staging workflow (major feature, 4-5 hours)
 - **Production**: Running at https://jukebox.bikejeepyoga.com
-- **Database**: SQLite at `/home/michael/dev/work/jukebox/data/requests.db` (5 users, 14 requests restored from backup)
-- **Recent Work**: Completed 4 tasks (2 quick wins, 2 bug fixes) - search improvements, album monitoring fix
+- **Database**: SQLite at `/home/michael/dev/work/jukebox/data/requests.db` (5 users, 14 requests)
+- **Recent Work**: Completed Stage 1 (4 tasks), planned Stage 3 (artist staging with admin pool)
 
 ### Current Sprint: v0.6.0 - Search & UX Improvements
 
-**See `TODO.md` for detailed task list** (4 remaining tasks)
+**See `TODO.md` for detailed task list** (7 tasks across 4 tiers)
 
 **Completed (Stage 1)**:
-1. ✅ Removed "Check Plex, Jellyfin, or Navidrome..." message from UI
-2. ✅ Fixed unmonitored album bug: flip album to monitored instead of saying "already exists"
-3. ✅ Fixed Frank Sinatra search flicker (race condition with stale results)
-4. ✅ Improved Taylor Swift album search (fallback generic search)
+1. ✅ Removed "Check Plex, Jellyfin, or Navidrome..." message
+2. ✅ Fixed unmonitored album handling (flip to monitored)
+3. ✅ Fixed Frank Sinatra search flicker bug (race condition)
+4. ✅ Improved album search (fallback generic search)
 
-**Next (Stage 2)**:
-1. Album dropdown after artist validation
-2. Fuzzy search to normalize MusicBrainz input
-3. Build local MusicBrainz cache (strategic)
-4. Debounce search UX with local cache + "Search MB" button (strategic)
+**Stage 2 (Planning Complete)**:
+- Strategy sessions on local cache vs staging area
+- Decided: staging area approach (admin pool, no local MB cache yet)
+- Requirements documented (see `docs/ARTIST-STAGING-REQUIREMENTS.md`)
+- Stage 3 plan ready (see `docs/STAGE-3-PLAN.md`)
+
+**Next (Stage 3 - READY TO START)**:
+1. **Artist Staging Workflow** (4-5 hours, highest priority):
+   - Database migration (`artist_staging` table)
+   - "Pull Albums" button (two-phase commit)
+   - Admin staging area (no user clutter)
+   - Staging reuse across users (7-day refresh)
+   - Move to user space on album commit
+   - **Solves**: "wrong artist" and "album not found" problems
+
+**After Stage 3 (Quick Wins)**:
+2. Trigger search when monitoring album
+3. Improve status messages (requested vs available)
+4. Show version in UI banner
 
 ---
 
