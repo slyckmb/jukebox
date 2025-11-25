@@ -10,18 +10,38 @@ Flask app that lets users request music downloads via Lidarr with real-time prog
 
 ## Quick Start
 
+### Production Deployment
+
 ```bash
-# Development
 cd /home/michael/dev/work/jukebox
-python3 -m py_compile app/app.py  # Check syntax
 docker compose build jukebox && docker compose up -d jukebox
 
-# Testing
+# Verify
 curl http://localhost:5000/api/health  # Should return {"status":"ok"}
 
 # Logs
 docker compose logs --tail=50 jukebox
 ```
+
+**Requirements**:
+- External secrets at `/mnt/config/secrets/jukebox/env`
+- External network: `gluetun_network`
+- See `docs/SECRETS.md` for configuration details
+
+### Development/Testing Without Infrastructure
+
+If you don't have the external secrets setup:
+
+1. Create a `.env` file with required variables:
+```bash
+LIDARR_API_KEY=your-api-key
+FLASK_SECRET_KEY=your-secret-key
+LIDARR_URL=http://lidarr:8686
+```
+
+2. Modify `docker-compose.yml` to use `environment:` instead of `env_file:`
+
+3. Remove the `networks:` section if not using gluetun
 
 ---
 

@@ -9,3 +9,4 @@ data/
 
 # Misc editor/OS cruft
 .DS_Store
+.env
