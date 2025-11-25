@@ -965,6 +965,95 @@ def new_request():
         foreign_artist_id = artist_data.get("foreignArtistId")
         artist_display_name = artist_data.get("artistName", artist_name)
 
+        # NEW: Check if artist exists in staging first
+        staging_artist, staging_err = find_staging_artist(foreign_artist_id)
+
+        if staging_artist:
+            # Artist is in staging - move to user space
+            lidarr_artist_id = staging_artist["lidarr_artist_id"]
+            success, move_err = move_artist_to_user(lidarr_artist_id, user["username"])
+
+            if not success:
+                # Failed to move artist from staging
+                friendly_error = f"Failed to move artist from staging: {move_err}"
+                with closing(get_db()) as conn:
+                    conn.execute(
+                        "UPDATE requests SET status = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                        ("failed", friendly_error, datetime.utcnow().isoformat(), req_id),
+                    )
+                    conn.commit()
+                flash(f"✗ {friendly_error}", "danger")
+                return redirect(url_for("list_requests"))
+
+            # Successfully moved - now find and monitor the album
+            album_data, album_err = find_album_in_artist(lidarr_artist_id, album_title)
+
+            if album_err:
+                # Error finding album
+                app.logger.warning(f"Could not search for album after staging move: {album_err}")
+                status_msg = f"Artist moved to your library, but could not find album '{album_title}'"
+                with closing(get_db()) as conn:
+                    conn.execute(
+                        "UPDATE requests SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                        ("failed", lidarr_artist_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                    )
+                    conn.commit()
+                flash(f"✗ {status_msg}", "warning")
+                return redirect(url_for("list_requests"))
+
+            if not album_data:
+                # Album not found in artist's albums
+                status_msg = f"Album '{album_title}' not found for {artist_display_name}. Check the album title."
+                with closing(get_db()) as conn:
+                    conn.execute(
+                        "UPDATE requests SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                        ("failed", lidarr_artist_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                    )
+                    conn.commit()
+                flash(f"✗ {status_msg}", "warning")
+                return redirect(url_for("list_requests"))
+
+            # Album found - set it to monitored
+            album_id = album_data.get("id")
+            is_monitored = album_data.get("monitored", False)
+
+            if not is_monitored:
+                success, monitor_err = set_album_monitored(album_id, monitored=True)
+
+                if success:
+                    status_msg = f"'{album_title}' by {artist_display_name} is now being monitored!"
+                    with closing(get_db()) as conn:
+                        conn.execute(
+                            "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                            ("submitted", lidarr_artist_id, album_id, None, datetime.utcnow().isoformat(), req_id),
+                        )
+                        conn.commit()
+                    flash(f"✓ {status_msg}", "success")
+                    return redirect(url_for("list_requests"))
+                else:
+                    # Failed to update monitoring status
+                    app.logger.error(f"Failed to set album monitored: {monitor_err}")
+                    status_msg = f"Could not enable monitoring for '{album_title}'"
+                    with closing(get_db()) as conn:
+                        conn.execute(
+                            "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                            ("failed", lidarr_artist_id, album_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                        )
+                        conn.commit()
+                    flash(f"✗ {status_msg}", "danger")
+                    return redirect(url_for("list_requests"))
+            else:
+                # Album is already monitored
+                status_msg = f"'{album_title}' by {artist_display_name} is already being monitored!"
+                with closing(get_db()) as conn:
+                    conn.execute(
+                        "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                        ("existing", lidarr_artist_id, album_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                    )
+                    conn.commit()
+                flash(f"✓ {status_msg}", "info")
+                return redirect(url_for("list_requests"))
+
         # Check if artist already exists in Lidarr
         exists, existing_artist, check_error = check_artist_exists_in_lidarr(foreign_artist_id)
 

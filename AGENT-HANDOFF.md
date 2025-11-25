@@ -10,11 +10,11 @@
 
 ### Project Status
 - **v0.6.0 Stage 1-2 Complete**: Quick wins, search fixes, planning done
-- **v0.6.0 Stage 3 In Progress**: 67% complete (4/6 tasks) - DB, backend, API done
+- **v0.6.0 Stage 3 Complete**: 100% complete - Artist staging workflow fully implemented
 - **Production**: Running at https://jukebox.bikejeepyoga.com
 - **Database**: SQLite with `artist_staging` table (migration 003 applied)
-- **Recent Work**: Stage 3 - implemented staging functions, API endpoints (commit: 5d2cc2d)
-- **Next**: Complete Stage 3 - request flow + frontend UI (~2 hours)
+- **Recent Work**: Stage 3 complete - request flow + frontend UI implemented
+- **Next**: Stage 4 quick wins (trigger search, improve messages, show version)
 
 ### Current Sprint: v0.6.0 - Search & UX Improvements
 
@@ -32,14 +32,19 @@
 - Requirements documented (see `docs/ARTIST-STAGING-REQUIREMENTS.md`)
 - Stage 3 plan ready (see `docs/STAGE-3-PLAN.md`)
 
-**Stage 3 Progress** (67% complete):
+**Stage 3 Complete** (100%):
 ✅ Database migration (`artist_staging` table) - DONE
 ✅ Backend functions (5 new functions) - DONE
 ✅ API endpoints (`/pull-albums`, `/albums/<id>`) - DONE
-⏳ Request flow update (use staging on commit) - TODO
-⏳ Frontend UI ("Pull Albums" button, polling) - TODO
+✅ Request flow update (use staging on commit) - DONE
+✅ Frontend UI ("Pull Albums" button, polling) - DONE
 
-**To Continue**: See `docs/STAGE-3-CONTINUE.md` for detailed pickup instructions
+**Implementation Summary**:
+- Modified `new_request()` route to check staging and move artists to user space (app/app.py:968-1055)
+- Added "Pull Albums" button, loading states, and album dropdown to UI (templates/new_request.html)
+- Implemented polling logic with exponential backoff (1s, 2s, 3s... up to ~27s total)
+- Albums sorted by release date (newest first) in dropdown
+- Container built and tested - no errors
 
 **After Stage 3 (Quick Wins)**:
 2. Trigger search when monitoring album

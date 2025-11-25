@@ -6,19 +6,17 @@
 
 ## Active Tasks (Re-ranked by Impact & Effort)
 
-### Tier 1: Artist Staging Workflow (Stage 3 - NEXT!)
+### Tier 1: Artist Staging Workflow ✅ COMPLETE
 
-#### 1. Artist Staging Workflow 🏗️ HIGHEST PRIORITY (67% Complete)
+#### 1. Artist Staging Workflow 🏗️ (100% Complete)
 - [x] **Phase 1**: Database migration (`artist_staging` table)
 - [x] **Phase 2**: Backend helper functions (create, find, refresh, move)
 - [x] **Phase 3**: API endpoints (`/pull-albums`, `/albums/{id}`)
 - [x] **Phase 4**: Configuration (STAGING_REFRESH_DAYS)
-- [ ] **Phase 5**: Update request submission flow (use staging)
-- [ ] **Phase 6**: Frontend UI + Polling ("Pull Albums" button, album dropdown, polling)
-- [ ] **Impact**: Solves "wrong artist" and "album not found" problems
-- [ ] **Effort**: 2 hours remaining (2/6 tasks)
-- [ ] **Details**: See `docs/STAGE-3-CONTINUE.md` for pickup instructions
-- [ ] **Status**: Commit 5d2cc2d - continue in fresh session
+- [x] **Phase 5**: Update request submission flow (use staging)
+- [x] **Phase 6**: Frontend UI + Polling ("Pull Albums" button, album dropdown, polling)
+- [x] **Impact**: Solves "wrong artist" and "album not found" problems
+- [x] **Status**: Stage 3 complete - all 6 phases implemented and tested
 
 **Key Features**:
 - Two-phase commit (validate → pull → commit)

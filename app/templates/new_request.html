@@ -39,27 +39,40 @@
         <p id="artist-hint" class="form-hint">Type any part of the artist name (e.g., "pink f")</p>
       </div>
 
-      <div class="form-group autocomplete-group">
+      <!-- Pull Albums Section (shown after artist selected) -->
+      <div id="artist-validated" class="artist-validated-section" style="display:none;">
+        <div class="artist-card">
+          <div class="artist-card-header">
+            <span class="artist-icon">✓</span>
+            <div class="artist-info">
+              <h3 id="validated-artist-name"></h3>
+              <p id="validated-artist-hint">Click below to load albums from Lidarr</p>
+            </div>
+          </div>
+          <button id="pull-albums-btn" class="btn btn-primary btn-pull-albums" type="button">
+            <span>Pull Albums from Lidarr</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading Albums Section -->
+      <div id="loading-albums" class="loading-albums-section" style="display:none;">
+        <div class="loading-content">
+          <span class="spinner">⏳</span>
+          <span id="loading-message">Loading albums from Lidarr...</span>
+        </div>
+      </div>
+
+      <!-- Album Dropdown (shown after albums loaded) -->
+      <div id="album-dropdown-container" class="form-group" style="display:none;">
         <label for="album_title">
-          Album Title
+          Select Album
           <span class="required">*</span>
         </label>
-        <div class="autocomplete-wrapper">
-          <input
-            type="text"
-            id="album_title"
-            name="album_title"
-            required
-            placeholder="Select artist first..."
-            aria-describedby="album-hint"
-            aria-autocomplete="list"
-            aria-controls="album-results"
-            autocomplete="off"
-            disabled
-          >
-          <div id="album-results" class="autocomplete-results" role="listbox"></div>
-        </div>
-        <p id="album-hint" class="form-hint">Select an artist to see available albums</p>
+        <select id="album_title" name="album_title" required class="album-select">
+          <option value="">Choose an album...</option>
+        </select>
+        <p id="album-hint" class="form-hint">Select the album you want to request</p>
       </div>
       <div class="form-group">
         <label for="note">Note (optional)</label>
@@ -339,6 +352,115 @@ input:valid:not(:placeholder-shown) {
     background: rgba(99, 102, 241, 0.3);
   }
 }
+
+/* Artist Validated Section */
+.artist-validated-section {
+  margin: var(--spacing-lg) 0;
+}
+
+.artist-card {
+  background: var(--bg-secondary);
+  border: 2px solid var(--success);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.artist-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.artist-icon {
+  font-size: 32px;
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+.artist-info {
+  flex: 1;
+}
+
+.artist-info h3 {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-lg);
+  color: var(--text-primary);
+}
+
+.artist-info p {
+  margin: 0;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.btn-pull-albums {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-md);
+  font-weight: 600;
+}
+
+/* Loading Albums Section */
+.loading-albums-section {
+  margin: var(--spacing-lg) 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  text-align: center;
+}
+
+.spinner {
+  font-size: 48px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+#loading-message {
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Album Select Dropdown */
+.album-select {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-md);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.album-select:hover {
+  border-color: var(--primary);
+}
+
+.album-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.album-select option {
+  padding: var(--spacing-sm);
+}
 </style>
 {% endblock %}
 
@@ -583,16 +705,16 @@ class FuzzyAutocomplete {
     // Trigger change event for other handlers
     this.input.dispatchEvent(new Event('change', { bubbles: true }));
 
-    // Show success feedback
-    if (typeof showToast === 'function') {
-      showToast(`Selected: ${value}`, 'success');
+    // Callback for custom handlers
+    if (this.onSelect) {
+      this.onSelect({ name: value, id: id });
     }
+  }
 
-    // Focus next field
-    const albumField = document.getElementById('album_title');
-    if (albumField) {
-      albumField.disabled = false;
-      albumField.focus();
+  // Allow setting a callback for selection
+  on(event, callback) {
+    if (event === 'select') {
+      this.onSelect = callback;
     }
   }
 
@@ -614,6 +736,14 @@ class FuzzyAutocomplete {
   }
 }
 
+// Utility: Sleep function for polling delays
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Global state for selected artist
+let selectedArtist = null;
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
   // Character counter for note field
@@ -633,33 +763,170 @@ document.addEventListener('DOMContentLoaded', () => {
     '/api/search/artist'
   );
 
-  // Album autocomplete (initialized after artist selected)
-  let albumAutocomplete = null;
+  // Handle artist selection - show "Pull Albums" button
+  artistAutocomplete.on('select', (artist) => {
+    // Store selected artist globally
+    selectedArtist = {
+      name: artist.name,
+      mbId: artist.id
+    };
 
-  document.getElementById('artist_name').addEventListener('change', (e) => {
-    const artistName = e.target.value.trim();
-    const artistId = e.target.dataset.selectedId;
+    // Show the "Pull Albums" section
+    document.getElementById('artist-validated').style.display = 'block';
+    document.getElementById('validated-artist-name').textContent = artist.name;
 
-    if (artistName && artistId) {
-      // Initialize album autocomplete with artist context
-      if (!albumAutocomplete) {
-        albumAutocomplete = new FuzzyAutocomplete(
-          'album_title',
-          'album-results',
-          `/api/search/album?artistId=${artistId}`
-        );
+    // Hide any previous album dropdown or loading states
+    document.getElementById('album-dropdown-container').style.display = 'none';
+    document.getElementById('loading-albums').style.display = 'none';
+  });
+
+  // Pull Albums button click handler
+  document.getElementById('pull-albums-btn').addEventListener('click', async () => {
+    if (!selectedArtist) {
+      alert('Please select an artist first');
+      return;
+    }
+
+    // Disable button during request
+    const pullBtn = document.getElementById('pull-albums-btn');
+    pullBtn.disabled = true;
+    pullBtn.innerHTML = '<span>Loading...</span>';
+
+    // Show loading section
+    document.getElementById('loading-albums').style.display = 'block';
+    document.getElementById('loading-message').textContent = 'Contacting Lidarr...';
+
+    // Hide album dropdown if previously shown
+    document.getElementById('album-dropdown-container').style.display = 'none';
+
+    try {
+      // Call the pull-albums API
+      const response = await fetch('/api/artist/pull-albums', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          artist_name: selectedArtist.name,
+          mb_artist_id: selectedArtist.mbId
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'error') {
+        throw new Error(data.message || 'Failed to pull albums');
+      }
+
+      if (data.state === 'ready') {
+        // Albums already loaded - get them immediately
+        await getAlbums(data.lidarr_artist_id);
       } else {
-        // Update the endpoint for new artist
-        albumAutocomplete.apiEndpoint = `/api/search/album?artistId=${artistId}`;
+        // Need to poll - state is 'loading' or 'refreshing'
+        const message = data.state === 'refreshing' ? 'Refreshing albums...' : 'Loading albums from Lidarr...';
+        await pollForAlbums(data.lidarr_artist_id, message);
       }
-
-      // Update hint to user
-      const albumHint = document.getElementById('album-hint');
-      if (albumHint) {
-        albumHint.innerHTML = `<span style="color: var(--success);">✓ Now select an album by ${artistName}</span>`;
-      }
+    } catch (error) {
+      console.error('Pull albums error:', error);
+      alert(`Error: ${error.message}`);
+      document.getElementById('loading-albums').style.display = 'none';
+      pullBtn.disabled = false;
+      pullBtn.innerHTML = '<span>Pull Albums from Lidarr</span>';
     }
   });
+
+  // Get albums immediately (for 'ready' state)
+  async function getAlbums(lidarrId) {
+    try {
+      const response = await fetch(`/api/artist/albums/${lidarrId}`);
+      const data = await response.json();
+
+      if (data.ready && data.albums && data.albums.length > 0) {
+        populateAlbumDropdown(data.albums);
+      } else {
+        throw new Error('Albums not ready or empty');
+      }
+    } catch (error) {
+      console.error('Get albums error:', error);
+      alert('Failed to load albums. Please try again.');
+      document.getElementById('loading-albums').style.display = 'none';
+      const pullBtn = document.getElementById('pull-albums-btn');
+      pullBtn.disabled = false;
+      pullBtn.innerHTML = '<span>Pull Albums from Lidarr</span>';
+    }
+  }
+
+  // Poll for albums (for 'loading' or 'refreshing' states)
+  async function pollForAlbums(lidarrId, message) {
+    const delays = [1000, 2000, 2000, 3000, 3000, 4000, 4000, 5000]; // Total ~27s
+    document.getElementById('loading-message').textContent = message;
+
+    for (let i = 0; i < delays.length; i++) {
+      await sleep(delays[i]);
+
+      try {
+        const response = await fetch(`/api/artist/albums/${lidarrId}`);
+        const data = await response.json();
+
+        if (data.ready && data.albums && data.albums.length > 0) {
+          populateAlbumDropdown(data.albums);
+          return; // Success!
+        }
+
+        // Update progress message
+        document.getElementById('loading-message').textContent =
+          `${message} (attempt ${i + 1}/${delays.length})`;
+
+      } catch (error) {
+        console.error(`Poll attempt ${i + 1} failed:`, error);
+      }
+    }
+
+    // Timeout - albums didn't load in time
+    alert('Lidarr is taking longer than expected. Please try again in a moment.');
+    document.getElementById('loading-albums').style.display = 'none';
+    const pullBtn = document.getElementById('pull-albums-btn');
+    pullBtn.disabled = false;
+    pullBtn.innerHTML = '<span>Pull Albums from Lidarr</span>';
+  }
+
+  // Populate the album dropdown with results
+  function populateAlbumDropdown(albums) {
+    const select = document.getElementById('album_title');
+    select.innerHTML = '<option value="">Choose an album...</option>';
+
+    // Sort albums by release date (newest first)
+    albums.sort((a, b) => {
+      const dateA = new Date(a.releaseDate || '1900-01-01');
+      const dateB = new Date(b.releaseDate || '1900-01-01');
+      return dateB - dateA;
+    });
+
+    albums.forEach(album => {
+      const option = document.createElement('option');
+      option.value = album.title;
+
+      // Format: "Album Title (2023)" or just "Album Title" if no date
+      let displayText = album.title;
+      if (album.releaseDate) {
+        const year = album.releaseDate.substring(0, 4);
+        displayText += ` (${year})`;
+      }
+
+      option.textContent = displayText;
+      select.appendChild(option);
+    });
+
+    // Hide loading, show dropdown
+    document.getElementById('loading-albums').style.display = 'none';
+    document.getElementById('album-dropdown-container').style.display = 'block';
+
+    // Re-enable pull button (in case user wants to refresh)
+    const pullBtn = document.getElementById('pull-albums-btn');
+    pullBtn.disabled = false;
+    pullBtn.innerHTML = '<span>Refresh Albums</span>';
+
+    // Auto-focus the dropdown
+    select.focus();
+  }
 
   // Form validation
   const form = document.getElementById('requestForm');
@@ -669,9 +936,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', (e) => {
       if (!artistField.value.trim()) {
         e.preventDefault();
-        if (typeof showToast === 'function') {
-          showToast('Artist name is required', 'danger');
-        }
+        alert('Artist name is required');
         artistField.focus();
       }
     });
