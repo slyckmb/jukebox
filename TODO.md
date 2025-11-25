@@ -6,6 +6,24 @@
 
 ## Active Tasks (Re-ranked by Impact & Effort)
 
+### Tier 0: Bugs (Immediate Priority)
+
+#### BUG: Pull Albums fails when artist already exists in Lidarr
+- [ ] **Issue**: Clicking "Pull Albums" for an artist that already exists in Lidarr (any root folder) throws error
+- [ ] **Error**: Lidarr 400: "This artist has already been added" (ArtistExistsValidator)
+- [ ] **Root Cause**: `create_artist_in_staging()` doesn't check if artist exists before creating
+- [ ] **Expected**: Should detect existing artist and either:
+  - (A) Use existing artist if in staging area
+  - (B) Return error message: "Artist already in your library - skip Pull Albums and submit directly"
+  - (C) Find existing artist and get albums from it
+- [ ] **Reproduction**: Pull Albums for artist already in any user's library
+- [ ] **Impact**: HIGH - Blocks staging workflow for existing artists
+- [ ] **Effort**: 30-45 min (add existence check to staging flow)
+- [ ] **Priority**: P0 - Must fix before v0.6.0 release
+- [ ] **Location**: `app/app.py` `/api/artist/pull-albums` endpoint (line ~1287+)
+
+---
+
 ### Tier 1: Artist Staging Workflow ✅ COMPLETE
 
 #### 1. Artist Staging Workflow 🏗️ (100% Complete)
