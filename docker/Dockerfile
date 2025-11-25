@@ -6,9 +6,8 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Install dependencies from vendored wheels (no network access needed)
-COPY vendor /tmp/vendor
-RUN pip install --no-cache-dir --no-index --find-links /tmp/vendor flask requests && rm -rf /tmp/vendor
+# Install dependencies from PyPI
+RUN pip install --no-cache-dir flask requests
 
 # Copy application files
 COPY app/app.py /app/app.py

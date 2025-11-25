@@ -353,6 +353,8 @@ class FuzzyAutocomplete {
     this.debounceTimer = null;
     this.selectedIndex = -1;
     this.results = [];
+    this.currentQuery = ''; // Track current query to prevent stale results
+    this.abortController = null; // For canceling previous requests
 
     this.init();
   }
@@ -392,9 +394,13 @@ class FuzzyAutocomplete {
     const query = value.trim();
 
     if (query.length < 2) {
+      this.currentQuery = '';
       this.hide();
       return;
     }
+
+    // Store the current query
+    this.currentQuery = query;
 
     // Show loading state
     this.showLoading();
@@ -406,12 +412,28 @@ class FuzzyAutocomplete {
   }
 
   async search(query) {
+    // Cancel previous request if still pending
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+
+    // Create new abort controller for this request
+    this.abortController = new AbortController();
+
     try {
       const response = await fetch(
-        `${this.apiEndpoint}?q=${encodeURIComponent(query)}`
+        `${this.apiEndpoint}?q=${encodeURIComponent(query)}`,
+        { signal: this.abortController.signal }
       );
 
       const data = await response.json();
+
+      // Only update UI if this query is still current
+      // This prevents stale results from overwriting newer searches
+      if (query !== this.currentQuery) {
+        console.log(`Ignoring stale results for "${query}" (current: "${this.currentQuery}")`);
+        return;
+      }
 
       if (data.results && data.results.length > 0) {
         this.results = data.results;
@@ -420,8 +442,18 @@ class FuzzyAutocomplete {
         this.showNoResults();
       }
     } catch (error) {
+      // Don't show error if request was aborted (expected behavior)
+      if (error.name === 'AbortError') {
+        console.log('Search aborted (superseded by newer search)');
+        return;
+      }
+
       console.error('Autocomplete error:', error);
-      this.showError();
+
+      // Only show error if this query is still current
+      if (query === this.currentQuery) {
+        this.showError();
+      }
     }
   }
 

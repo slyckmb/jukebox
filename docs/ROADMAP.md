@@ -1,11 +1,11 @@
 # Jukebox Roadmap
 
-**Version**: 0.5.0
-**Status**: 95% Complete - One Priority Remaining
+**Version**: 0.5.0 → 0.6.0
+**Status**: Search & UX Improvements Sprint
 
 ---
 
-## What's Done
+## What's Done (v0.5.0)
 
 - ✅ Complete user journey (request → progress → listen now)
 - ✅ Fuzzy autocomplete (80% fewer failed requests)
@@ -13,20 +13,32 @@
 - ✅ Listen Now buttons (Plex/Jellyfin/Navidrome)
 - ✅ Duplicate detection & error handling
 - ✅ Mobile-first responsive UI
+- ✅ Extracted to standalone repo with clean git history
+- ✅ Database restored from backup after migration
 
 ---
 
-## Next Priority: UI Cleanup (2-3 hours)
+## Current Sprint (v0.6.0): Search & UX Improvements
 
-**Why**: Final polish to make app 100% production-ready
+**Focus**: Fix search bugs, improve MusicBrainz integration, better UX
 
-**What**:
-1. Show/Hide Failed toggle (20 min)
-2. Delete request button (45 min)
-3. Status filter pills (40 min)
-4. Database indexes (15 min)
+**Quick Wins** (⚡ 1-2 hours total):
+1. Remove "Check Plex, Jellyfin..." message
+2. Fix unmonitored album handling (flip to monitored instead of "already exists")
 
-**Result**: Production-ready, polished app
+**Bug Fixes** (🐛 2-3 hours):
+3. Frank Sinatra search flicker (results appear then disappear)
+4. Taylor Swift album search (top album not found)
+
+**Features** (🎯 4-6 hours):
+5. Album dropdown after artist validation
+6. Fuzzy search for MusicBrainz input normalization
+
+**Strategic** (🏗️ 8-12 hours):
+7. Build local MusicBrainz cache (reduce API hits)
+8. Debounce search UX with local cache + "Search MB" button
+
+**Result**: Reliable search, better UX, lower MusicBrainz API usage
 
 ---
 

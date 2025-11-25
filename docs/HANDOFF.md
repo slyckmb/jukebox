@@ -1,7 +1,7 @@
 # Jukebox Quick Reference
 
-**Version**: 0.5.0
-**Repo**: /home/michael/dev/work/glider/glider-docker/jukebox
+**Version**: 0.5.0 → 0.6.0 (in progress)
+**Repo**: /home/michael/dev/work/jukebox
 **URL**: https://jukebox.bikejeepyoga.com
 
 ---

@@ -454,6 +454,88 @@ def create_artist_in_lidarr(username: str, artist_name: str):
     return None, f"Lidarr error {resp.status_code}: {resp.text}"
 
 
+def find_album_in_artist(lidarr_artist_id: int, album_title: str):
+    """
+    Find a specific album in an artist's albums by title (fuzzy match).
+
+    Returns:
+        (album_data: dict, error: str)
+    """
+    from difflib import SequenceMatcher
+
+    url = f"{LIDARR_URL}/album"
+    try:
+        resp = requests.get(
+            url,
+            params={"artistId": lidarr_artist_id, "apikey": LIDARR_API_KEY},
+            timeout=10
+        )
+    except Exception as exc:
+        return None, f"Connection error: {exc}"
+
+    if resp.status_code != 200:
+        return None, f"Lidarr API error {resp.status_code}"
+
+    try:
+        albums = resp.json()
+
+        # Find best matching album by title
+        best_match = None
+        best_score = 0.0
+
+        for album in albums:
+            album_name = album.get("title", "").lower()
+            score = SequenceMatcher(None, album_title.lower(), album_name).ratio()
+            if score > best_score:
+                best_score = score
+                best_match = album
+
+        # Require at least 60% match
+        if best_match and best_score >= 0.6:
+            return best_match, None
+
+        return None, None  # Album not found
+
+    except Exception as exc:
+        return None, f"Parse error: {exc}"
+
+
+def set_album_monitored(album_id: int, monitored: bool = True):
+    """
+    Update an album's monitored status in Lidarr.
+
+    Returns:
+        (success: bool, error: str)
+    """
+    # First, get the current album data
+    url = f"{LIDARR_URL}/album/{album_id}"
+    try:
+        resp = requests.get(url, params={"apikey": LIDARR_API_KEY}, timeout=10)
+    except Exception as exc:
+        return False, f"Connection error: {exc}"
+
+    if resp.status_code != 200:
+        return False, f"Lidarr API error {resp.status_code}"
+
+    try:
+        album_data = resp.json()
+
+        # Update the monitored flag
+        album_data["monitored"] = monitored
+
+        # Send PUT request to update
+        put_url = f"{LIDARR_URL}/album/{album_id}?apikey={LIDARR_API_KEY}"
+        put_resp = requests.put(put_url, json=album_data, timeout=10)
+
+        if put_resp.status_code in (200, 202):
+            return True, None
+
+        return False, f"Update failed with status {put_resp.status_code}: {put_resp.text}"
+
+    except Exception as exc:
+        return False, f"Parse error: {exc}"
+
+
 # --- Routes --------------------------------------------------------------------------
 
 
@@ -686,20 +768,79 @@ def new_request():
             app.logger.warning(f"Could not check for existing artist: {check_error}")
 
         if exists:
-            # Artist already exists!
+            # Artist already exists - check if the album is monitored
             lidarr_artist_id = existing_artist.get("id")
-            status_msg = f"'{artist_display_name}' already exists in your library! Check Plex, Jellyfin, or Navidrome to listen now."
 
-            # Update request status to 'existing'
-            with closing(get_db()) as conn:
-                conn.execute(
-                    "UPDATE requests SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                    ("existing", lidarr_artist_id, status_msg, datetime.utcnow().isoformat(), req_id),
-                )
-                conn.commit()
+            # Try to find the requested album in the artist's albums
+            album_data, album_err = find_album_in_artist(lidarr_artist_id, album_title)
 
-            flash(f"✓ {status_msg}", "info")
-            return redirect(url_for("list_requests"))
+            if album_err:
+                # Error finding album - log and proceed with default behavior
+                app.logger.warning(f"Could not search for album: {album_err}")
+                status_msg = f"'{artist_display_name}' already exists in your library!"
+                with closing(get_db()) as conn:
+                    conn.execute(
+                        "UPDATE requests SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                        ("existing", lidarr_artist_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                    )
+                    conn.commit()
+                flash(f"✓ {status_msg}", "info")
+                return redirect(url_for("list_requests"))
+
+            if album_data:
+                # Album exists - check if monitored
+                album_id = album_data.get("id")
+                is_monitored = album_data.get("monitored", False)
+
+                if not is_monitored:
+                    # Album exists but is unmonitored - flip it to monitored
+                    success, monitor_err = set_album_monitored(album_id, monitored=True)
+
+                    if success:
+                        status_msg = f"'{album_title}' by {artist_display_name} is now being monitored!"
+                        with closing(get_db()) as conn:
+                            conn.execute(
+                                "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                                ("submitted", lidarr_artist_id, album_id, None, datetime.utcnow().isoformat(), req_id),
+                            )
+                            conn.commit()
+                        flash(f"✓ {status_msg}", "success")
+                        return redirect(url_for("list_requests"))
+                    else:
+                        # Failed to update monitoring status
+                        app.logger.error(f"Failed to set album monitored: {monitor_err}")
+                        status_msg = f"Could not enable monitoring for '{album_title}'"
+                        with closing(get_db()) as conn:
+                            conn.execute(
+                                "UPDATE requests SET status = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                                ("failed", status_msg, datetime.utcnow().isoformat(), req_id),
+                            )
+                            conn.commit()
+                        flash(f"✗ {status_msg}", "danger")
+                        return redirect(url_for("list_requests"))
+                else:
+                    # Album is already monitored
+                    status_msg = f"'{album_title}' by {artist_display_name} is already being monitored!"
+                    with closing(get_db()) as conn:
+                        conn.execute(
+                            "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                            ("existing", lidarr_artist_id, album_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                        )
+                        conn.commit()
+                    flash(f"✓ {status_msg}", "info")
+                    return redirect(url_for("list_requests"))
+            else:
+                # Album not found in artist's albums - artist exists but album doesn't
+                # This could be a new album or a typo - report as such
+                status_msg = f"'{artist_display_name}' exists in your library, but album '{album_title}' was not found. Check the album title."
+                with closing(get_db()) as conn:
+                    conn.execute(
+                        "UPDATE requests SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
+                        ("failed", lidarr_artist_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                    )
+                    conn.commit()
+                flash(f"✗ {status_msg}", "warning")
+                return redirect(url_for("list_requests"))
 
         # Artist doesn't exist - continue with normal add flow
         data, err = create_artist_in_lidarr(user["username"], artist_name)
@@ -872,6 +1013,59 @@ def search_album():
 
         # Sort by score (highest first), then limit to 10
         results.sort(key=lambda x: x["score"], reverse=True)
+
+        # If artist-specific search returned no good matches (all scores < 0.4), try generic search
+        if artist_id and (not results or results[0]["score"] < 0.4):
+            app.logger.info(f"Artist-specific search found no good matches for '{query}', trying generic search")
+
+            # Try generic album search as fallback
+            generic_url = f"{LIDARR_URL}/album/lookup"
+            generic_params = {
+                "term": query,
+                "apikey": LIDARR_API_KEY
+            }
+
+            generic_resp = requests.get(generic_url, params=generic_params, timeout=10)
+
+            if generic_resp.status_code == 200:
+                generic_data = generic_resp.json()
+
+                # Add generic results (avoiding duplicates)
+                existing_ids = {r["id"] for r in results}
+
+                for item in generic_data:
+                    album_id = item.get("foreignAlbumId", "")
+                    if album_id in existing_ids:
+                        continue
+
+                    album_title = item.get("title", "")
+                    if not album_title:
+                        continue
+
+                    # Calculate fuzzy match score
+                    score = SequenceMatcher(None, query.lower(), album_title.lower()).ratio()
+
+                    # Extract year from releaseDate (YYYY-MM-DD)
+                    release_date = item.get("releaseDate", "")
+                    year = release_date[:4] if release_date else None
+
+                    # Get artist name from the album data
+                    artist_name = ""
+                    if "artist" in item and "artistName" in item["artist"]:
+                        artist_name = item["artist"]["artistName"]
+
+                    results.append({
+                        "name": album_title,
+                        "id": album_id,
+                        "disambiguation": artist_name,
+                        "year": year,
+                        "score": score,
+                        "type": "album"
+                    })
+
+                # Re-sort with combined results
+                results.sort(key=lambda x: x["score"], reverse=True)
+
         results = results[:10]
 
         # Remove score from response
