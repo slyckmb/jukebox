@@ -1,6 +1,6 @@
 # Jukebox Secrets Wiring
 
-Follow `global/docs/SECRETS_POLICY.md`: reuse existing secret files, don’t duplicate values.
+Follow `global/docs/SECRETS-VAULT-PLAYBOOK.md`: reuse existing secret files, don’t duplicate values.
 
 - Config env (tracked): `./.env` — non-secret defaults. You can set `FLASK_SECRET_KEY_FILE` here to point to your vault file.
 - Lidarr key: reuse `/mnt/config/secrets/bash/bash_lidarr-api-key.env` (already referenced in `docker-compose.yml`). **Do not copy this key anywhere else.**

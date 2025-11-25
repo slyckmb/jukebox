@@ -61,15 +61,31 @@
 
 ## 🥈 TIER 2: Moderate Effort + High Impact
 
-### 6. Artist/Album Autocomplete with MusicBrainz
-- **Complexity**: ⭐⭐⭐ (Medium - 1.5-2 hours)
+### 6. ✅ Artist/Album Autocomplete with MusicBrainz (IMPLEMENTED v0.5.0)
+- **Complexity**: ⭐⭐⭐ (Medium - 3 hours actual)
 - **Impact**: 💥💥💥💥💥 (Critical)
 - **Type**: Frontend + Backend Proxy Endpoint
 - **Description**: Real-time suggestions from MusicBrainz API while typing
 - **Benefits**: Prevents typos, reduces failed lookups by 80%+, shows official names
-- **Implementation**: JavaScript autocomplete + backend proxy (~30 lines)
+- **Implementation**: Complete - FuzzyAutocomplete class, 2 API endpoints, 11 tests
+- **Status**: Deployed and functional (commits: 3353768, 24f79e0)
 
-### 7. Predictive Duplicate Checking
+### 7. Auto-Populate Album List from Selected Artist
+- **Complexity**: ⭐⭐ (Low - 45-60 min)
+- **Impact**: 💥💥💥💥 (Very High)
+- **Type**: Frontend + Backend Enhancement
+- **Description**: When artist is selected via autocomplete, automatically fetch and display full album list in dropdown instead of requiring user to type
+- **Benefits**: Zero typing for album selection, discover all available albums, faster workflow
+- **Current State**: Album field requires typing to search - user may not know album names
+- **Proposed Flow**:
+  1. User selects "Pink Floyd" from artist autocomplete
+  2. Album dropdown immediately populates with all Pink Floyd albums (sorted by year)
+  3. User scrolls/searches the pre-populated list
+  4. Much faster than typing each time
+- **Implementation**: On artist selection, call `/api/search/album?artistId=X&q=` (empty query returns all albums for artist), populate dropdown immediately
+- **Enhancement**: Add year sorting, group by decade, show album art thumbnails
+
+### 8. Predictive Duplicate Checking
 - **Complexity**: ⭐⭐ (Low - 30-45 min)
 - **Impact**: 💥💥💥💥 (Very High)
 - **Type**: Frontend + Backend Endpoint
@@ -77,7 +93,7 @@
 - **Benefits**: Prevents duplicate submissions, immediate link to existing music
 - **Implementation**: Debounced fetch + existing check function
 
-### 8. Fuzzy Search for Request List
+### 9. Fuzzy Search for Request List
 - **Complexity**: ⭐⭐ (Low - 1-1.5 hours)
 - **Impact**: 💥💥💥💥 (Very High)
 - **Type**: Frontend Only (JavaScript)

@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir --no-index --find-links /tmp/vendor flask request
 
 # Copy application files
 COPY app/app.py /app/app.py
+COPY app/error_parser.py /app/error_parser.py
 COPY app/templates /app/templates
 COPY app/static /app/static
 

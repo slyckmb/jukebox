@@ -30,7 +30,7 @@
     {% else %}
     <div class="request-list">
       {% for req in rows %}
-        {{ request_card(req) }}
+        {{ request_card(req, media_servers) }}
       {% endfor %}
     </div>
     {% endif %}

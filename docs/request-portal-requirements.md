@@ -436,7 +436,7 @@ FLASK_SECRET_KEY=<from vault>
 
 ### 8.2 Secrets Management (Implemented)
 
-Follows `global/docs/SECRETS_POLICY.md`:
+Follows `global/docs/SECRETS-VAULT-PLAYBOOK.md`:
 
 **Config files:**
 - `.env` (tracked): Non-secret defaults

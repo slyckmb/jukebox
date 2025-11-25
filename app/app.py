@@ -740,6 +740,151 @@ def api_health():
     return jsonify({"status": "ok", "app": "Jukebox"})
 
 
+@app.route("/api/search/artist")
+@login_required
+def search_artist():
+    """
+    Fuzzy search for artists via Lidarr/MusicBrainz.
+    Returns top 5 matches sorted by relevance.
+    """
+    from difflib import SequenceMatcher
+
+    query = request.args.get("q", "").strip()
+
+    if not query or len(query) < 2:
+        return jsonify({"results": []})
+
+    try:
+        # Query Lidarr artist lookup (which queries MusicBrainz)
+        url = f"{LIDARR_URL}/artist/lookup"
+        params = {
+            "term": query,
+            "apikey": LIDARR_API_KEY
+        }
+
+        resp = requests.get(url, params=params, timeout=10)
+
+        if resp.status_code != 200:
+            app.logger.error(f"Lidarr artist search failed: {resp.status_code}")
+            return jsonify({"results": []})
+
+        data = resp.json()
+
+        # Transform and score results
+        results = []
+        for item in data:
+            artist_name = item.get("artistName", "")
+            if not artist_name:
+                continue
+
+            # Calculate fuzzy match score
+            score = SequenceMatcher(None, query.lower(), artist_name.lower()).ratio()
+
+            results.append({
+                "name": artist_name,
+                "id": item.get("foreignArtistId", ""),
+                "disambiguation": item.get("disambiguation", ""),
+                "score": score,
+                "type": "artist"
+            })
+
+        # Sort by score (highest first), then limit to top 5
+        results.sort(key=lambda x: x["score"], reverse=True)
+        results = results[:5]
+
+        # Remove score from response (internal use only)
+        for result in results:
+            del result["score"]
+
+        return jsonify({"results": results})
+
+    except Exception as exc:
+        app.logger.error(f"Artist search error: {exc}")
+        return jsonify({"results": []})
+
+
+@app.route("/api/search/album")
+@login_required
+def search_album():
+    """
+    Search for albums via Lidarr/MusicBrainz.
+    Returns albums sorted by release date and relevance.
+    """
+    from difflib import SequenceMatcher
+
+    query = request.args.get("q", "").strip()
+    artist_id = request.args.get("artistId", "").strip()
+
+    if not query or len(query) < 2:
+        return jsonify({"results": []})
+
+    try:
+        # If we have artist ID, search within that artist's albums
+        if artist_id:
+            url = f"{LIDARR_URL}/album/lookup"
+            params = {
+                "term": f"lidarr:{artist_id}",  # Search by artist MusicBrainz ID
+                "apikey": LIDARR_API_KEY
+            }
+        else:
+            # Generic album search
+            url = f"{LIDARR_URL}/album/lookup"
+            params = {
+                "term": query,
+                "apikey": LIDARR_API_KEY
+            }
+
+        resp = requests.get(url, params=params, timeout=10)
+
+        if resp.status_code != 200:
+            app.logger.error(f"Lidarr album search failed: {resp.status_code}")
+            return jsonify({"results": []})
+
+        data = resp.json()
+
+        # Transform results
+        results = []
+        for item in data:
+            album_title = item.get("title", "")
+            if not album_title:
+                continue
+
+            # Calculate fuzzy match score
+            score = SequenceMatcher(None, query.lower(), album_title.lower()).ratio()
+
+            # Extract year from releaseDate (YYYY-MM-DD)
+            release_date = item.get("releaseDate", "")
+            year = release_date[:4] if release_date else None
+
+            # Get artist name from the album data
+            artist_name = ""
+            if "artist" in item and "artistName" in item["artist"]:
+                artist_name = item["artist"]["artistName"]
+
+            results.append({
+                "name": album_title,
+                "id": item.get("foreignAlbumId", ""),
+                "disambiguation": artist_name,
+                "year": year,
+                "score": score,
+                "type": "album"
+            })
+
+        # Sort by score (highest first), then limit to 10
+        results.sort(key=lambda x: x["score"], reverse=True)
+        results = results[:10]
+
+        # Remove score from response
+        for result in results:
+            del result["score"]
+
+        return jsonify({"results": results})
+
+    except Exception as exc:
+        app.logger.error(f"Album search error: {exc}")
+        return jsonify({"results": []})
+
+
 @app.route("/api/login", methods=["POST"])
 def api_login():
     data = request.get_json(force=True, silent=True) or {}

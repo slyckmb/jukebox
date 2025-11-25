@@ -1,6 +1,6 @@
 {% from 'components/status_badge.html' import status_badge %}
 
-{% macro request_card(req) %}
+{% macro request_card(req, media_servers) %}
 <div class="request-card" data-status="{{ req.status }}">
   <div class="card-header">
     <h3 class="artist-name">{{ req.artist_name }}</h3>
