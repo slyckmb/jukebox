@@ -13,6 +13,12 @@
 - [ ] Gives user clearer status information upfront
 - [ ] Check album statistics in Lidarr response
 
+### 1b. Trigger search when flipping album to monitored ⚡ QUICK WIN
+- [ ] After setting album monitored=true, trigger Lidarr album search
+- [ ] Use Lidarr API command endpoint to initiate search
+- [ ] Ensures download starts immediately instead of waiting for RSS sync
+- [ ] Related to task #1 (existing album flow)
+
 ### 2. Show version number in UI banner 🎯
 - [ ] Add version display to page header/banner
 - [ ] Read from app.py or environment variable
