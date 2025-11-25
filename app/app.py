@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.1"
+__version__ = "0.6.2"
 
 import os
 import sqlite3
@@ -553,6 +553,7 @@ def trigger_album_search(album_id: int):
     Trigger an album search in Lidarr to start download immediately.
     This is a fire-and-forget operation - errors are logged but not returned.
     """
+    app.logger.info(f"trigger_album_search called for album ID {album_id}")
     url = f"{LIDARR_URL}/command"
     payload = {
         "name": "AlbumSearch",
@@ -560,13 +561,14 @@ def trigger_album_search(album_id: int):
     }
 
     try:
+        app.logger.info(f"Sending AlbumSearch command to Lidarr: {payload}")
         resp = requests.post(url, json=payload, params={"apikey": LIDARR_API_KEY}, timeout=10)
         if resp.status_code in (201, 202):
-            app.logger.info(f"Triggered AlbumSearch for album ID {album_id}")
+            app.logger.info(f"✓ AlbumSearch command accepted by Lidarr for album ID {album_id}")
         else:
-            app.logger.warning(f"AlbumSearch command failed with status {resp.status_code}")
+            app.logger.warning(f"✗ AlbumSearch command rejected: HTTP {resp.status_code} - {resp.text}")
     except Exception as exc:
-        app.logger.warning(f"Failed to trigger AlbumSearch for album {album_id}: {exc}")
+        app.logger.error(f"✗ Exception triggering AlbumSearch for album {album_id}: {exc}")
 
 
 # --- Artist Staging Functions --------------------------------------------------------
@@ -1051,9 +1053,11 @@ def new_request():
             is_monitored = album_data.get("monitored", False)
 
             if not is_monitored:
+                app.logger.info(f"Setting album {album_id} ('{album_title}') to monitored")
                 success, monitor_err = set_album_monitored(album_id, monitored=True)
 
                 if success:
+                    app.logger.info(f"Album {album_id} successfully set to monitored")
                     status_msg = f"'{album_title}' by {artist_display_name} is now being monitored!"
                     with closing(get_db()) as conn:
                         conn.execute(
@@ -1077,15 +1081,18 @@ def new_request():
                     return redirect(url_for("list_requests"))
             else:
                 # Album is already monitored - check if it's available or just requested
+                app.logger.info(f"Album {album_id} ('{album_title}') is already monitored, checking availability")
                 statistics = album_data.get("statistics", {})
                 track_count = statistics.get("trackCount", 0)
 
+                app.logger.info(f"Album {album_id} statistics: trackCount={track_count}, statistics={statistics}")
+
                 if track_count > 0:
                     # Album has tracks - it's available
-                    status_msg = f"'{album_title}' by {artist_display_name} is already available!"
+                    status_msg = f"Album '{album_title}' is already available! (Artist: {artist_display_name})"
                 else:
                     # Album is monitored but no tracks yet - still downloading/requested
-                    status_msg = f"'{album_title}' by {artist_display_name} is already requested!"
+                    status_msg = f"Album '{album_title}' is already requested and downloading! (Artist: {artist_display_name})"
 
                 with closing(get_db()) as conn:
                     conn.execute(
@@ -1130,9 +1137,11 @@ def new_request():
 
                 if not is_monitored:
                     # Album exists but is unmonitored - flip it to monitored
+                    app.logger.info(f"Existing artist path: Setting album {album_id} ('{album_title}') to monitored")
                     success, monitor_err = set_album_monitored(album_id, monitored=True)
 
                     if success:
+                        app.logger.info(f"Existing artist path: Album {album_id} successfully set to monitored")
                         status_msg = f"'{album_title}' by {artist_display_name} is now being monitored!"
                         with closing(get_db()) as conn:
                             conn.execute(
@@ -1156,15 +1165,18 @@ def new_request():
                         return redirect(url_for("list_requests"))
                 else:
                     # Album is already monitored - check if it's available or just requested
+                    app.logger.info(f"Existing artist path: Album {album_id} ('{album_title}') is already monitored")
                     statistics = album_data.get("statistics", {})
                     track_count = statistics.get("trackCount", 0)
 
+                    app.logger.info(f"Album {album_id} statistics: trackCount={track_count}")
+
                     if track_count > 0:
                         # Album has tracks - it's available
-                        status_msg = f"'{album_title}' by {artist_display_name} is already available!"
+                        status_msg = f"Album '{album_title}' is already available! (Artist: {artist_display_name})"
                     else:
                         # Album is monitored but no tracks yet - still downloading/requested
-                        status_msg = f"'{album_title}' by {artist_display_name} is already requested!"
+                        status_msg = f"Album '{album_title}' is already requested and downloading! (Artist: {artist_display_name})"
 
                     with closing(get_db()) as conn:
                         conn.execute(
