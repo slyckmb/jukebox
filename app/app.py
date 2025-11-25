@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.2"
+__version__ = "0.6.3"
 
 import os
 import sqlite3
@@ -373,6 +373,8 @@ def sync_request_status(request_id: int) -> bool:
             else:
                 new_status = "completed"
 
+            app.logger.info(f"Request {request_id}: {old_status} → {new_status} ({downloaded_count}/{total_albums} albums)")
+
             # Update database
             now = datetime.utcnow().isoformat()
             conn.execute(
@@ -386,6 +388,9 @@ def sync_request_status(request_id: int) -> bool:
                 (new_status, total_albums, downloaded_count, now, now, request_id)
             )
             conn.commit()
+
+            if new_status != old_status:
+                app.logger.info(f"✓ Request {request_id} status changed: {old_status} → {new_status}")
 
             return new_status != old_status
 
@@ -404,10 +409,14 @@ def sync_active_requests():
             "SELECT id FROM requests WHERE status IN ('submitted', 'downloading')"
         ).fetchall()
 
+    app.logger.info(f"Syncing {len(active)} active requests")
     changed_count = 0
     for req in active:
         if sync_request_status(req["id"]):
             changed_count += 1
+
+    if changed_count > 0:
+        app.logger.info(f"Sync complete: {changed_count} requests changed status")
 
     return changed_count
 
