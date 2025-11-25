@@ -12,7 +12,7 @@ Flask app that lets users request music downloads via Lidarr with real-time prog
 
 ```bash
 # Development
-cd /home/michael/dev/work/glider/glider-docker/jukebox
+cd /home/michael/dev/work/jukebox
 python3 -m py_compile app/app.py  # Check syntax
 docker compose build jukebox && docker compose up -d jukebox
 
