@@ -10,10 +10,11 @@
 
 ### Project Status
 - **v0.6.0 Stage 1-2 Complete**: Quick wins, search fixes, planning done
-- **v0.6.0 Stage 3 Ready**: Artist staging workflow (major feature, 4-5 hours)
+- **v0.6.0 Stage 3 In Progress**: 67% complete (4/6 tasks) - DB, backend, API done
 - **Production**: Running at https://jukebox.bikejeepyoga.com
-- **Database**: SQLite at `/home/michael/dev/work/jukebox/data/requests.db` (5 users, 14 requests)
-- **Recent Work**: Completed Stage 1 (4 tasks), planned Stage 3 (artist staging with admin pool)
+- **Database**: SQLite with `artist_staging` table (migration 003 applied)
+- **Recent Work**: Stage 3 - implemented staging functions, API endpoints (commit: 5d2cc2d)
+- **Next**: Complete Stage 3 - request flow + frontend UI (~2 hours)
 
 ### Current Sprint: v0.6.0 - Search & UX Improvements
 
@@ -31,14 +32,14 @@
 - Requirements documented (see `docs/ARTIST-STAGING-REQUIREMENTS.md`)
 - Stage 3 plan ready (see `docs/STAGE-3-PLAN.md`)
 
-**Next (Stage 3 - READY TO START)**:
-1. **Artist Staging Workflow** (4-5 hours, highest priority):
-   - Database migration (`artist_staging` table)
-   - "Pull Albums" button (two-phase commit)
-   - Admin staging area (no user clutter)
-   - Staging reuse across users (7-day refresh)
-   - Move to user space on album commit
-   - **Solves**: "wrong artist" and "album not found" problems
+**Stage 3 Progress** (67% complete):
+✅ Database migration (`artist_staging` table) - DONE
+✅ Backend functions (5 new functions) - DONE
+✅ API endpoints (`/pull-albums`, `/albums/<id>`) - DONE
+⏳ Request flow update (use staging on commit) - TODO
+⏳ Frontend UI ("Pull Albums" button, polling) - TODO
+
+**To Continue**: See `docs/STAGE-3-CONTINUE.md` for detailed pickup instructions
 
 **After Stage 3 (Quick Wins)**:
 2. Trigger search when monitoring album
