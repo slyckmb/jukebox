@@ -6,7 +6,54 @@
 
 ## Active Tasks (Re-ranked by Impact & Effort)
 
-### Tier 0: Bugs (Immediate Priority)
+### Tier 0: Bugs - Field Test Issues (Immediate Priority)
+
+#### BUG #1: Artist search requires full exact name (e.g., 'zach bryan')
+- [ ] **Issue**: Autocomplete doesn't show results until full name is typed
+- [ ] **Expected**: Fuzzy search should match partial names like "zach" or "bryan"
+- [ ] **Impact**: MEDIUM - Reduces discoverability, frustrates users
+- [ ] **Priority**: P1 - Important UX issue
+- [ ] **Location**: `/api/search/artist` endpoint or MusicBrainz API query
+- [ ] **Investigation**: Check if fuzzy matching is working, API query parameters
+
+#### BUG #2: Automatic album search not triggering after monitoring
+- [ ] **Issue**: Albums set to monitored don't trigger automatic search in Lidarr
+- [ ] **Expected**: AlbumSearch command should fire immediately (Stage 4 feature)
+- [ ] **Impact**: HIGH - Downloads don't start, defeats purpose of Stage 4
+- [ ] **Priority**: P0 - Critical regression
+- [ ] **Location**: `trigger_album_search()` in `set_album_monitored()` (app/app.py:543-561)
+- [ ] **Investigation**: Check Lidarr logs for AlbumSearch command, verify API call
+
+#### BUG #3: Misleading "already available" message for new album
+- [ ] **Issue**: Requested new album from existing artist, got "already available" message
+- [ ] **Context**: Artist "Zach Bryan" existed, requested different album
+- [ ] **Message**: "'Zach Bryan' by Zach Bryan is already available!"
+- [ ] **Expected**: Should say "Album is now being monitored" or similar
+- [ ] **Impact**: MEDIUM - Confusing user feedback
+- [ ] **Priority**: P1 - User confusion
+- [ ] **Root Cause**: Likely checking artist statistics instead of album statistics
+- [ ] **Location**: Request flow after staging move (app/app.py:1071-1088)
+
+#### BUG #4: Unclear card status - "existing" means artist or album?
+- [ ] **Issue**: Request card shows "existing" status - ambiguous
+- [ ] **Context**: Zach Bryan / zachbryan card shows "existing"
+- [ ] **Question**: Does this mean artist exists or album exists?
+- [ ] **Expected**: Clear distinction - "Artist exists, album monitoring" vs "Album already available"
+- [ ] **Impact**: LOW-MEDIUM - Status clarity
+- [ ] **Priority**: P2 - UX polish
+- [ ] **Location**: Request card rendering logic, status badge
+
+#### BUG #5: Lidarr status updates not syncing to request cards
+- [ ] **Issue**: Request card statuses don't update to reflect Lidarr download progress
+- [ ] **Expected**: Cards should show "downloading", "completed", progress bars
+- [ ] **Impact**: HIGH - Users can't track request progress
+- [ ] **Priority**: P1 - Core functionality
+- [ ] **Investigation**: Check `sync_active_requests()` and `sync_request_status()` functions
+- [ ] **Location**: Status sync logic (app/app.py), possibly page load sync trigger
+
+---
+
+### Tier 0: Bugs (Previously Fixed)
 
 #### BUG: Pull Albums fails when artist already exists in Lidarr ✅ FIXED
 - [x] **Issue**: Clicking "Pull Albums" for an artist that already exists in Lidarr (any root folder) throws error
