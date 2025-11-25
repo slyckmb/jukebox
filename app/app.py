@@ -1479,6 +1479,26 @@ def pull_albums_api():
                 "message": f"Using cached {artist_name}"
             })
     else:
+        # Not in staging - check if artist already exists in Lidarr
+        exists, existing_artist, check_err = check_artist_exists_in_lidarr(mb_artist_id)
+
+        if check_err:
+            app.logger.warning(f"Error checking for existing artist: {check_err}")
+            # Non-fatal - continue with creation attempt
+
+        if exists and existing_artist:
+            # Artist already exists in Lidarr (any root folder)
+            lidarr_artist_id = existing_artist.get("id")
+            app.logger.info(f"Artist {artist_name} already exists in Lidarr (ID: {lidarr_artist_id}), using existing")
+
+            # Return as ready since artist and albums already exist
+            return jsonify({
+                "status": "ok",
+                "lidarr_artist_id": lidarr_artist_id,
+                "state": "ready",
+                "message": f"Using existing {artist_name} from library"
+            })
+
         # New artist, add to staging
         lidarr_artist_id, add_err = create_artist_in_staging(artist_name, mb_artist_id, user["id"])
 

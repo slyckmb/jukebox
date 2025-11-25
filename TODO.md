@@ -8,19 +8,25 @@
 
 ### Tier 0: Bugs (Immediate Priority)
 
-#### BUG: Pull Albums fails when artist already exists in Lidarr
-- [ ] **Issue**: Clicking "Pull Albums" for an artist that already exists in Lidarr (any root folder) throws error
-- [ ] **Error**: Lidarr 400: "This artist has already been added" (ArtistExistsValidator)
-- [ ] **Root Cause**: `create_artist_in_staging()` doesn't check if artist exists before creating
-- [ ] **Expected**: Should detect existing artist and either:
-  - (A) Use existing artist if in staging area
-  - (B) Return error message: "Artist already in your library - skip Pull Albums and submit directly"
-  - (C) Find existing artist and get albums from it
-- [ ] **Reproduction**: Pull Albums for artist already in any user's library
-- [ ] **Impact**: HIGH - Blocks staging workflow for existing artists
-- [ ] **Effort**: 30-45 min (add existence check to staging flow)
-- [ ] **Priority**: P0 - Must fix before v0.6.0 release
-- [ ] **Location**: `app/app.py` `/api/artist/pull-albums` endpoint (line ~1287+)
+#### BUG: Pull Albums fails when artist already exists in Lidarr ✅ FIXED
+- [x] **Issue**: Clicking "Pull Albums" for an artist that already exists in Lidarr (any root folder) throws error
+- [x] **Error**: Lidarr 400: "This artist has already been added" (ArtistExistsValidator)
+- [x] **Root Cause**: `create_artist_in_staging()` doesn't check if artist exists before creating
+- [x] **Solution**: Added existence check before creating - now uses existing artist with "ready" state
+- [x] **Implementation**: Check `check_artist_exists_in_lidarr()` before `create_artist_in_staging()`
+- [x] **Location**: `app/app.py` lines 1482-1500 (pull-albums endpoint)
+- [x] **Status**: Fixed, ready for testing
+
+#### TODO: Update requirements documentation
+- [ ] **Task**: Clarify in requirements that "Pull Albums" should work for BOTH new and existing artists
+- [ ] **Files**: `docs/ARTIST-STAGING-REQUIREMENTS.md` or similar
+- [ ] **Context**: Original design assumed staging was only for new artists
+- [ ] **Expected behavior**: Pull Albums should:
+  1. Check staging first (reuse if found)
+  2. Check Lidarr for existing artist (use if found)
+  3. Create new artist in staging only if truly new
+- [ ] **Priority**: P2 - Documentation update
+- [ ] **Effort**: 15 min
 
 ---
 
