@@ -10,11 +10,12 @@
 
 ### Project Status
 - **v0.6.0 Stage 1-2 Complete**: Quick wins, search fixes, planning done
-- **v0.6.0 Stage 3 Complete**: 100% complete - Artist staging workflow fully implemented
-- **Production**: Running at https://jukebox.bikejeepyoga.com
+- **v0.6.0 Stage 3 Complete**: Artist staging workflow fully implemented
+- **v0.6.0 Stage 4 Complete**: Quick wins (search trigger, status messages, version)
+- **Production**: Running at https://jukebox.bikejeepyoga.com (needs deploy)
 - **Database**: SQLite with `artist_staging` table (migration 003 applied)
-- **Recent Work**: Stage 3 complete - request flow + frontend UI implemented
-- **Next**: Stage 4 quick wins (trigger search, improve messages, show version)
+- **Recent Work**: Stage 4 quick wins - immediate downloads, better status messages, version badge
+- **Next**: Deploy to production, then continue with Tier 3 features or user testing
 
 ### Current Sprint: v0.6.0 - Search & UX Improvements
 
@@ -46,10 +47,16 @@
 - Albums sorted by release date (newest first) in dropdown
 - Container built and tested - no errors
 
-**After Stage 3 (Quick Wins)**:
-2. Trigger search when monitoring album
-3. Improve status messages (requested vs available)
-4. Show version in UI banner
+**Stage 4 Complete** (100%):
+✅ Trigger search when monitoring album - DONE
+✅ Improve status messages (requested vs available) - DONE
+✅ Show version in UI banner - DONE
+
+**Implementation Summary (Stage 4)**:
+- Album search triggered immediately when monitored (app/app.py:533-561)
+- Status messages differentiate "already requested" vs "already available" (app/app.py:1071-1088, 1150-1167)
+- Version badge (v0.6.0) displayed in header (app/app.py:14, 87-90; requests.html:11, 91-99)
+- All container tests passing, no errors
 
 ---
 

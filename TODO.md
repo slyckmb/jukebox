@@ -27,30 +27,30 @@
 
 ---
 
-### Tier 2: Quick Wins (Stage 4 - After Staging)
+### Tier 2: Quick Wins ✅ COMPLETE (Stage 4)
 
 #### 2. Trigger search when flipping album to monitored ⚡ HIGH IMPACT
-- [ ] After setting album monitored=true, trigger Lidarr album search
-- [ ] Use Lidarr API command endpoint: `POST /command {"name":"AlbumSearch","albumIds":[...]}`
-- [ ] Ensures download starts immediately instead of waiting for RSS sync
-- [ ] **Impact**: Downloads start instantly, better user experience
-- [ ] **Effort**: 30 min (modify `set_album_monitored()` function)
+- [x] After setting album monitored=true, trigger Lidarr album search
+- [x] Use Lidarr API command endpoint: `POST /command {"name":"AlbumSearch","albumIds":[...]}`
+- [x] Ensures download starts immediately instead of waiting for RSS sync
+- [x] **Impact**: Downloads start instantly, better user experience
+- [x] **Effort**: 30 min (modify `set_album_monitored()` function)
 
 #### 3. Improve "already monitored" message ⚡ MEDIUM IMPACT
-- [ ] Change message based on Lidarr album status:
+- [x] Change message based on Lidarr album status:
   - If downloading/no tracks: "is already requested"
   - If has tracks: "is already available"
-- [ ] Check album statistics in Lidarr response
-- [ ] **Impact**: Clearer user feedback
-- [ ] **Effort**: 30 min (modify message logic in existing album flow)
+- [x] Check album statistics in Lidarr response
+- [x] **Impact**: Clearer user feedback
+- [x] **Effort**: 30 min (modify message logic in existing album flow)
 
 #### 4. Show version number in UI banner 🎯 LOW IMPACT
-- [ ] Add version display to page header/banner
-- [ ] Read from app.py or environment variable
-- [ ] **Impact**: Better visibility of deployed version
-- [ ] **Effort**: 20 min (template + CSS change)
+- [x] Add version display to page header/banner
+- [x] Read from app.py or environment variable
+- [x] **Impact**: Better visibility of deployed version
+- [x] **Effort**: 20 min (template + CSS change)
 
-**→ Proposed Stage 4: Tasks 2-4 (1.5 hours total)**
+**Stage 4 Complete**: Tasks 2-4 (1.5 hours total)
 
 ---
 
