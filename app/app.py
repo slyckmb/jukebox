@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.3"
+__version__ = "0.6.4"
 
 import os
 import sqlite3
@@ -739,6 +739,46 @@ def get_artist_albums(lidarr_artist_id: int):
         return None, f"Failed to get albums: {exc}"
 
 
+def unmonitor_all_albums(lidarr_artist_id: int):
+    """
+    Set ALL albums for an artist to monitored=False.
+    Used before moving artist to user to ensure only selected album is monitored.
+
+    Returns (success: bool, error)
+    """
+    try:
+        # Get all albums for artist
+        url = f"{LIDARR_URL}/album"
+        resp = requests.get(
+            url,
+            params={"artistId": lidarr_artist_id, "apikey": LIDARR_API_KEY},
+            timeout=10
+        )
+
+        if resp.status_code != 200:
+            return False, f"Failed to get albums: {resp.status_code}"
+
+        albums = resp.json()
+        app.logger.info(f"Unmonitoring {len(albums)} albums for artist {lidarr_artist_id}")
+
+        # Update each album to monitored=False
+        for album in albums:
+            album["monitored"] = False
+            album_id = album.get("id")
+
+            put_url = f"{LIDARR_URL}/album/{album_id}?apikey={LIDARR_API_KEY}"
+            put_resp = requests.put(put_url, json=album, timeout=10)
+
+            if put_resp.status_code not in (200, 202):
+                app.logger.warning(f"Failed to unmonitor album {album_id}: {put_resp.status_code}")
+
+        app.logger.info(f"✓ All albums unmonitored for artist {lidarr_artist_id}")
+        return True, None
+
+    except Exception as exc:
+        return False, f"Unmonitor failed: {exc}"
+
+
 def move_artist_to_user(lidarr_artist_id: int, username: str):
     """
     Move artist from staging to user space.
@@ -771,12 +811,15 @@ def move_artist_to_user(lidarr_artist_id: int, username: str):
         artist_data["path"] = f"{user_root}/{artist_name}"
         artist_data["tags"] = [user_tag_id] if user_tag_id is not None else []
 
+        # BUG FIX #6: Set artist to monitored when moving to user space
+        artist_data["monitored"] = True
+
         # Send PUT request to update
         put_url = f"{LIDARR_URL}/artist/{lidarr_artist_id}?apikey={LIDARR_API_KEY}"
         put_resp = requests.put(put_url, json=artist_data, timeout=10)
 
         if put_resp.status_code in (200, 202):
-            app.logger.info(f"Moved artist {artist_name} (ID {lidarr_artist_id}) to user {username}")
+            app.logger.info(f"Moved artist {artist_name} (ID {lidarr_artist_id}) to user {username} (monitored=True)")
             return True, None
 
         return False, f"Update failed with status {put_resp.status_code}: {put_resp.text}"
@@ -1015,6 +1058,13 @@ def new_request():
         if staging_artist:
             # Artist is in staging - move to user space
             lidarr_artist_id = staging_artist["lidarr_artist_id"]
+
+            # BUG FIX #7: Unmonitor all albums before moving (ensures only selected album gets monitored)
+            app.logger.info(f"Unmonitoring all albums for artist {lidarr_artist_id} before move")
+            unmonitor_success, unmonitor_err = unmonitor_all_albums(lidarr_artist_id)
+            if not unmonitor_success:
+                app.logger.warning(f"Failed to unmonitor albums: {unmonitor_err} - continuing anyway")
+
             success, move_err = move_artist_to_user(lidarr_artist_id, user["username"])
 
             if not success:
@@ -1029,7 +1079,7 @@ def new_request():
                 flash(f"✗ {friendly_error}", "danger")
                 return redirect(url_for("list_requests"))
 
-            # Successfully moved - now find and monitor the album
+            # Successfully moved - now find and monitor the selected album ONLY
             album_data, album_err = find_album_in_artist(lidarr_artist_id, album_title)
 
             if album_err:

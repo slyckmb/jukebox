@@ -6,7 +6,42 @@
 
 ## Active Tasks (Re-ranked by Impact & Effort)
 
-### Tier 0: Bugs - Field Test Issues (Immediate Priority)
+### Tier 0: CRITICAL BUGS - Staging Workflow Broken (v0.6.3)
+
+#### BUG #6: Artist NOT monitored after staging workflow (CRITICAL)
+- [ ] **Issue**: Artist moved from staging to user space is NOT monitored in Lidarr
+- [ ] **Reproduction**:
+  1. New artist "Summer Walker" (not in library)
+  2. Pull Albums → Select "Finally Over It" → Submit
+  3. Lidarr shows: Artist NOT monitored, ALL albums monitored
+- [ ] **Expected**: Artist SHOULD be monitored
+- [ ] **Impact**: CRITICAL - Artist won't update, downloads may not work properly
+- [ ] **Priority**: P0 - Breaking staging workflow
+- [ ] **Root Cause**: `move_artist_to_user()` doesn't set artist monitored=True
+- [ ] **Location**: app/app.py:698-741 (move_artist_to_user function)
+
+#### BUG #7: ALL albums monitored instead of just selected album (CRITICAL)
+- [ ] **Issue**: When moving artist from staging, ALL albums are being monitored
+- [ ] **Reproduction**: Same as Bug #6 - all 4 albums monitored instead of just "Finally Over It"
+- [ ] **Expected**: ONLY the selected album should be monitored
+- [ ] **Impact**: CRITICAL - Downloads ALL albums, wastes bandwidth/storage
+- [ ] **Priority**: P0 - Breaking staging workflow
+- [ ] **Root Cause**: Staging artist created with `monitor: "none"`, but move doesn't reset monitoring
+- [ ] **Possible Issue**: Albums inherit monitored=True from staging, or Lidarr auto-monitors on move
+- [ ] **Location**: Need to investigate album monitoring state during staging
+
+#### BUG #8: "Already available" shown for brand new album request
+- [ ] **Issue**: Requesting NEW album shows "Album is already available!"
+- [ ] **Context**: New artists (Summer Walker, Morgan Wallen), first requests
+- [ ] **Actual State**: Album is monitored but NOT downloaded (trackCount should be 0)
+- [ ] **Root Cause**: Logic incorrectly reporting availability
+- [ ] **Related**: May be consequence of Bugs #6 & #7 (wrong monitoring state)
+- [ ] **Priority**: P1 - Confusing but doesn't break functionality
+- [ ] **Location**: Status message check in new_request route
+
+---
+
+### Tier 0: Bugs - Field Test Issues (Lower Priority)
 
 #### BUG #1: Artist search requires full exact name (e.g., 'zach bryan')
 - [ ] **Issue**: Autocomplete doesn't show results until full name is typed
