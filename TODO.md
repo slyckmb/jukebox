@@ -1,80 +1,36 @@
 # Jukebox TODO
 
-**Current Sprint**: Search & UX Improvements (v0.6.0)
+**Current Version**: v0.6.8
+**Last Updated**: 2025-11-25
 
 ---
 
-## Active Tasks (Re-ranked by Impact & Effort)
+## Active Tasks
 
-### Tier 0: CRITICAL BUGS - Staging Workflow Broken (v0.6.3)
+### Tier 1: Feature Requests
 
-#### BUG #6: Artist NOT monitored after staging workflow (CRITICAL)
-- [ ] **Issue**: Artist moved from staging to user space is NOT monitored in Lidarr
-- [ ] **Reproduction**:
-  1. New artist "Summer Walker" (not in library)
-  2. Pull Albums → Select "Finally Over It" → Submit
-  3. Lidarr shows: Artist NOT monitored, ALL albums monitored
-- [ ] **Expected**: Artist SHOULD be monitored
-- [ ] **Impact**: CRITICAL - Artist won't update, downloads may not work properly
-- [ ] **Priority**: P0 - Breaking staging workflow
-- [ ] **Root Cause**: `move_artist_to_user()` doesn't set artist monitored=True
-- [ ] **Location**: app/app.py:698-741 (move_artist_to_user function)
-
-#### BUG #7: ALL albums monitored instead of just selected album (CRITICAL)
-- [ ] **Issue**: When moving artist from staging, ALL albums are being monitored
-- [ ] **Reproduction**: Same as Bug #6 - all 4 albums monitored instead of just "Finally Over It"
-- [ ] **Expected**: ONLY the selected album should be monitored
-- [ ] **Impact**: CRITICAL - Downloads ALL albums, wastes bandwidth/storage
-- [ ] **Priority**: P0 - Breaking staging workflow
-- [ ] **Root Cause**: Staging artist created with `monitor: "none"`, but move doesn't reset monitoring
-- [ ] **Possible Issue**: Albums inherit monitored=True from staging, or Lidarr auto-monitors on move
-- [ ] **Location**: Need to investigate album monitoring state during staging
-
-#### BUG #8: "Already available" shown for brand new album request
-- [ ] **Issue**: Requesting NEW album shows "Album is already available!"
-- [ ] **Context**: New artists (Summer Walker, Morgan Wallen), first requests
-- [ ] **Actual State**: Album is monitored but NOT downloaded (trackCount should be 0)
-- [ ] **Root Cause**: Logic incorrectly reporting availability
-- [ ] **Related**: May be consequence of Bugs #6 & #7 (wrong monitoring state)
-- [ ] **Priority**: P1 - Confusing but doesn't break functionality
-- [ ] **Location**: Status message check in new_request route
+#### New Feature: API Health Check Button 🎯
+- [ ] **Request**: Add button to ping MusicBrainz and Lidarr APIs
+- [ ] **Use Case**: Debug/dev - verify connections without making requests
+- [ ] **Location**: Could add to requests page or new admin page
+- [ ] **Priority**: P2 - Nice to have for troubleshooting
+- [ ] **Effort**: 1-2 hours (new endpoint + UI button)
 
 ---
 
-### Tier 0: Bugs - Field Test Issues (Lower Priority)
+### Tier 2: Open Bugs - Field Test Issues
 
-#### BUG #1: Artist search requires full exact name (e.g., 'zach bryan')
+#### BUG #1: Artist search requires full exact name
 - [ ] **Issue**: Autocomplete doesn't show results until full name is typed
 - [ ] **Expected**: Fuzzy search should match partial names like "zach" or "bryan"
 - [ ] **Impact**: MEDIUM - Reduces discoverability, frustrates users
 - [ ] **Priority**: P1 - Important UX issue
-- [ ] **Location**: `/api/search/artist` endpoint or MusicBrainz API query
-- [ ] **Investigation**: Check if fuzzy matching is working, API query parameters
-
-#### BUG #2: Automatic album search not triggering after monitoring ✅ INSTRUMENTED
-- [x] **Investigation Complete**: Code exists and looks correct
-- [x] **Fix**: Added comprehensive logging to trace trigger path
-- [x] **Logging Added**:
-  - When album set to monitored (both paths)
-  - AlbumSearch command send to Lidarr
-  - Lidarr response status
-- [x] **Location**: app/app.py:556-571, 1054-1058, 1137-1141
-- [x] **Next**: Watch logs during next request to see if trigger fires
-- [x] **Status**: v0.6.2 - Ready for field test verification
-
-#### BUG #3: Misleading "already available" message for new album ✅ FIXED
-- [x] **Issue**: Requested new album from existing artist, got confusing message
-- [x] **Old Message**: "'Zach Bryan' by Zach Bryan is already available!"
-- [x] **New Message**: "Album 'Zach Bryan' is already available! (Artist: Zach Bryan)"
-- [x] **Fix**: Changed message to clearly specify ALBUM not artist
-- [x] **Also Added**: Logging of album statistics (trackCount) for debugging
-- [x] **Location**: app/app.py:1092-1095, 1176-1179
-- [x] **Status**: v0.6.2 - Fixed, ready for testing
+- [ ] **Root Cause**: MusicBrainz API limitation - not our code
+- [ ] **Note**: May require local MB cache (Tier 4 feature)
+- [ ] **Status**: v0.6.8 - Known limitation, documented
 
 #### BUG #4: Unclear card status - "existing" means artist or album?
 - [ ] **Issue**: Request card shows "existing" status - ambiguous
-- [ ] **Context**: Zach Bryan / zachbryan card shows "existing"
-- [ ] **Question**: Does this mean artist exists or album exists?
 - [ ] **Expected**: Clear distinction - "Artist exists, album monitoring" vs "Album already available"
 - [ ] **Impact**: LOW-MEDIUM - Status clarity
 - [ ] **Priority**: P2 - UX polish
@@ -90,33 +46,54 @@
 
 ---
 
-### Tier 0: Bugs (Previously Fixed)
+## Completed - v0.6.8 Field Test & Bug Fixes (2025-11-25)
 
-#### BUG: Pull Albums fails when artist already exists in Lidarr ✅ FIXED
-- [x] **Issue**: Clicking "Pull Albums" for an artist that already exists in Lidarr (any root folder) throws error
-- [x] **Error**: Lidarr 400: "This artist has already been added" (ArtistExistsValidator)
-- [x] **Root Cause**: `create_artist_in_staging()` doesn't check if artist exists before creating
-- [x] **Solution**: Added existence check before creating - now uses existing artist with "ready" state
-- [x] **Implementation**: Check `check_artist_exists_in_lidarr()` before `create_artist_in_staging()`
-- [x] **Location**: `app/app.py` lines 1482-1500 (pull-albums endpoint)
-- [x] **Status**: Fixed, ready for testing
+### Critical Staging Workflow Fixes
 
-#### TODO: Update requirements documentation
-- [ ] **Task**: Clarify in requirements that "Pull Albums" should work for BOTH new and existing artists
-- [ ] **Files**: `docs/ARTIST-STAGING-REQUIREMENTS.md` or similar
-- [ ] **Context**: Original design assumed staging was only for new artists
-- [ ] **Expected behavior**: Pull Albums should:
-  1. Check staging first (reuse if found)
-  2. Check Lidarr for existing artist (use if found)
-  3. Create new artist in staging only if truly new
-- [ ] **Priority**: P2 - Documentation update
-- [ ] **Effort**: 15 min
+#### BUG #6: Artist NOT monitored after staging workflow ✅ FIXED (v0.6.4)
+- [x] **Issue**: Artist moved from staging to user space is NOT monitored in Lidarr
+- [x] **Root Cause**: `move_artist_to_user()` didn't set artist monitored=True
+- [x] **Fix**: Added `artist_data["monitored"] = True` in move_artist_to_user() (app.py:819)
+- [x] **Status**: v0.6.4 - Fixed and verified
+
+#### BUG #7: ALL albums monitored instead of just selected album ✅ FIXED (v0.6.4)
+- [x] **Issue**: When moving artist from staging, ALL albums were being monitored
+- [x] **Root Cause**: Lidarr metadata refresh auto-monitors albums, staging didn't reset
+- [x] **Fix**: Created `unmonitor_all_albums()` function, called before moving artist (app.py:742-784)
+- [x] **Status**: v0.6.4 - Fixed and verified
+
+#### BUG 0.6.4-1: Deleted artist causes "Failed to load albums" ✅ FIXED (v0.6.5)
+- [x] **Issue**: Deleted artist in Lidarr still cached in staging, causing load errors
+- [x] **Root Cause**: Staging table not checked for deleted artists
+- [x] **Fix**: Added artist existence verification before using cached staging entry (app.py:1525-1543)
+- [x] **Implementation**: Check Lidarr API, clean up stale staging entries automatically
+- [x] **Status**: v0.6.5 - Fixed and verified
+
+#### BUG 0.6.4-2: Multiple artists with same name cause path collision ✅ FIXED (v0.6.5)
+- [x] **Issue**: Artists with identical names (e.g., multiple "NF") caused path conflicts
+- [x] **Root Cause**: Path generated from name only: `/lidarr_admin/NF`
+- [x] **Fix**: Append MusicBrainz ID suffix for uniqueness: `/lidarr_admin/NF-5660a8c7` (app.py:611-614)
+- [x] **Status**: v0.6.5 - Fixed and verified
+
+#### BUG 0.6.5-1 / 0.6.6-1: Multiple albums from same artist - only last monitored ✅ FIXED (v0.6.6)
+- [x] **Issue**: Requesting 2nd/3rd album from same artist unmonitored previous albums
+- [x] **Root Cause**: Artist not removed from staging after move, re-triggered "unmonitor all"
+- [x] **Fix**: Remove artist from staging table after successful move to user space (app.py:1086-1091)
+- [x] **Status**: v0.6.6 - Fixed, v0.6.7 field tested successfully
+
+### Enhancement & Instrumentation
+
+#### Album Search Trigger Verification ✅ INSTRUMENTED (v0.6.8)
+- [x] **Task**: Verify automatic album search is triggered after monitoring
+- [x] **Implementation**: Added explicit print statements to trigger_album_search() (app.py:565-585)
+- [x] **Logging**: Shows when search triggered, command sent, Lidarr response
+- [x] **Status**: v0.6.8 - Instrumented for monitoring, appears to be working
 
 ---
 
-### Tier 1: Artist Staging Workflow ✅ COMPLETE
+## Completed - v0.6.0-v0.6.3 (Search & UX Sprint)
 
-#### 1. Artist Staging Workflow 🏗️ (100% Complete)
+### Stage 3: Artist Staging Workflow ✅ COMPLETE
 - [x] **Phase 1**: Database migration (`artist_staging` table)
 - [x] **Phase 2**: Backend helper functions (create, find, refresh, move)
 - [x] **Phase 3**: API endpoints (`/pull-albums`, `/albums/{id}`)
@@ -124,7 +101,7 @@
 - [x] **Phase 5**: Update request submission flow (use staging)
 - [x] **Phase 6**: Frontend UI + Polling ("Pull Albums" button, album dropdown, polling)
 - [x] **Impact**: Solves "wrong artist" and "album not found" problems
-- [x] **Status**: Stage 3 complete - all 6 phases implemented and tested
+- [x] **Status**: All 6 phases implemented and field tested
 
 **Key Features**:
 - Two-phase commit (validate → pull → commit)
@@ -132,58 +109,44 @@
 - Staging reuse across users (performance)
 - Auto-refresh stale artists (7-day threshold)
 - Move to user space on commit
+- Cleanup on move (prevents duplicate processing)
+
+### Stage 4: Quick Wins ✅ COMPLETE
+- [x] Trigger search when flipping album to monitored (immediate downloads)
+- [x] Improve status messages ("already requested" vs "already available")
+- [x] Show version number in UI banner
+
+### Bug Fixes (Previous Versions)
+- [x] Pull Albums fails when artist already exists in Lidarr (v0.6.1)
+- [x] Misleading "already available" message for new album (v0.6.2)
+- [x] Fix Frank Sinatra search flicker (race condition)
+- [x] Improve Taylor Swift album search (fallback generic search)
+- [x] Remove "Check Plex, Jellyfin, or Navidrome..." message
+- [x] Fix unmonitored album handling (flip to monitored)
 
 ---
 
-### Tier 2: Quick Wins ✅ COMPLETE (Stage 4)
-
-#### 2. Trigger search when flipping album to monitored ⚡ HIGH IMPACT
-- [x] After setting album monitored=true, trigger Lidarr album search
-- [x] Use Lidarr API command endpoint: `POST /command {"name":"AlbumSearch","albumIds":[...]}`
-- [x] Ensures download starts immediately instead of waiting for RSS sync
-- [x] **Impact**: Downloads start instantly, better user experience
-- [x] **Effort**: 30 min (modify `set_album_monitored()` function)
-
-#### 3. Improve "already monitored" message ⚡ MEDIUM IMPACT
-- [x] Change message based on Lidarr album status:
-  - If downloading/no tracks: "is already requested"
-  - If has tracks: "is already available"
-- [x] Check album statistics in Lidarr response
-- [x] **Impact**: Clearer user feedback
-- [x] **Effort**: 30 min (modify message logic in existing album flow)
-
-#### 4. Show version number in UI banner 🎯 LOW IMPACT
-- [x] Add version display to page header/banner
-- [x] Read from app.py or environment variable
-- [x] **Impact**: Better visibility of deployed version
-- [x] **Effort**: 20 min (template + CSS change)
-
-**Stage 4 Complete**: Tasks 2-4 (1.5 hours total)
-
----
+## Future Features - Lower Priority
 
 ### Tier 3: Lower Priority Features
 
-#### 5. Add Fuzzy Search for MusicBrainz Input 🎯
+#### Add Fuzzy Search for MusicBrainz Input 🎯
 - [ ] Normalize/clean text input before MusicBrainz API calls
 - [ ] Resolve user input to valid MB search strings
 - [ ] Handle common typos and variations
 - [ ] **Impact**: Medium (helps with search accuracy)
 - [ ] **Effort**: 1-2 hours
 
-#### 6. Handle partial album downloads 🎯
+#### Handle partial album downloads 🎯
 - [ ] Detect when album has incomplete tracks (some missing)
 - [ ] Display per-track status or "partial download" indicator
 - [ ] Consider: flip monitor bit on individual tracks?
-- [ ] Balance: informative but not overly complex UI
 - [ ] **Impact**: Medium (edge case handling)
 - [ ] **Effort**: 2-3 hours (track-level API queries, UI design)
 
----
-
 ### Tier 4: Strategic/Long-term
 
-#### 6. Build Local MusicBrainz Cache 🏗️ STRATEGIC
+#### Build Local MusicBrainz Cache 🏗️ STRATEGIC
 - [ ] Design database schema for MB data cache
 - [ ] Store validated artist/album data from MB API
 - [ ] Check cache before hitting MB web API
@@ -191,20 +154,13 @@
 - [ ] **Impact**: High (performance, API rate limiting)
 - [ ] **Effort**: 3-4 hours (schema, migration, caching logic)
 
-#### 7. Debounce Search UX with Local Cache 🏗️ STRATEGIC
+#### Debounce Search UX with Local Cache 🏗️ STRATEGIC
 - [ ] Bounce live text entry against local cache only
 - [ ] Add "Search MusicBrainz" button for web API hits
 - [ ] Improves UX and lowers MB API hit rate
-- [ ] **Dependencies**: Requires task #6 (local cache)
+- [ ] **Dependencies**: Requires local MB cache
 - [ ] **Impact**: Medium (UX refinement)
 - [ ] **Effort**: 2 hours
-
----
-
-### Superseded/Merged
-
-~~**Old Task: Add Album Dropdown After Artist Validation**~~ → Merged into Task #1 (Artist Staging Workflow)
-~~**Old Task: Smart album list workflow (Lidarr-first)**~~ → Implemented as Task #1 (Artist Staging Workflow)
 
 ---
 
@@ -213,25 +169,3 @@
 See `docs/ALL-PROPOSED-FEATURES.md` for 47 ranked feature ideas.
 
 When user requests a feature, move it here as a task.
-
----
-
-## Completed (v0.6.0 - Stage 1)
-
-### Quick Wins
-- [x] Remove "Check Plex, Jellyfin, or Navidrome to listen now." message
-- [x] Fix unmonitored album handling (flip to monitored instead of "already exists")
-
-### Bug Fixes
-- [x] Fix Frank Sinatra search flicker (race condition with stale results)
-- [x] Improve Taylor Swift album search (fallback generic search)
-
----
-
-## Completed (Previous Versions)
-
-- [x] Fuzzy autocomplete for artist search
-- [x] Fuzzy autocomplete for album search
-- [x] Fix Lidarr API endpoint paths bug
-- [x] Add 11 automated tests
-- [x] Consolidate documentation (13 docs archived)

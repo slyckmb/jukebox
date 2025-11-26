@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.6"
+__version__ = "0.6.8"
 
 import os
 import sqlite3
@@ -562,6 +562,7 @@ def trigger_album_search(album_id: int):
     Trigger an album search in Lidarr to start download immediately.
     This is a fire-and-forget operation - errors are logged but not returned.
     """
+    print(f"[ALBUM SEARCH TRIGGER] Called for album ID {album_id}", flush=True)
     app.logger.info(f"trigger_album_search called for album ID {album_id}")
     url = f"{LIDARR_URL}/command"
     payload = {
@@ -570,13 +571,17 @@ def trigger_album_search(album_id: int):
     }
 
     try:
+        print(f"[ALBUM SEARCH TRIGGER] Sending to Lidarr: {payload}", flush=True)
         app.logger.info(f"Sending AlbumSearch command to Lidarr: {payload}")
         resp = requests.post(url, json=payload, params={"apikey": LIDARR_API_KEY}, timeout=10)
         if resp.status_code in (201, 202):
+            print(f"[ALBUM SEARCH TRIGGER] ✓ SUCCESS - Lidarr accepted search for album {album_id}", flush=True)
             app.logger.info(f"✓ AlbumSearch command accepted by Lidarr for album ID {album_id}")
         else:
+            print(f"[ALBUM SEARCH TRIGGER] ✗ FAILED - HTTP {resp.status_code}: {resp.text}", flush=True)
             app.logger.warning(f"✗ AlbumSearch command rejected: HTTP {resp.status_code} - {resp.text}")
     except Exception as exc:
+        print(f"[ALBUM SEARCH TRIGGER] ✗ EXCEPTION: {exc}", flush=True)
         app.logger.error(f"✗ Exception triggering AlbumSearch for album {album_id}: {exc}")
 
 
@@ -1059,6 +1064,8 @@ def new_request():
         # NEW: Check if artist exists in staging first
         staging_artist, staging_err = find_staging_artist(foreign_artist_id)
 
+        app.logger.info(f"Checking staging for artist {artist_display_name} (MB ID: {foreign_artist_id}): found={staging_artist is not None}")
+
         if staging_artist:
             # Artist is in staging - move to user space
             lidarr_artist_id = staging_artist["lidarr_artist_id"]
@@ -1179,6 +1186,8 @@ def new_request():
         if check_error:
             # Non-fatal: Log warning and continue with add attempt
             app.logger.warning(f"Could not check for existing artist: {check_error}")
+
+        app.logger.info(f"Checking if artist {artist_display_name} exists in Lidarr: exists={exists}")
 
         if exists:
             # Artist already exists - check if the album is monitored
