@@ -295,6 +295,7 @@ After Cloudflare Access is configured:
 - [Cloudflare Access Documentation](https://developers.cloudflare.com/cloudflare-one/applications/)
 - [Jukebox HANDOFF-JUKEBOX.md](./HANDOFF-JUKEBOX.md)
 - [Cloudflare Access API Reference](https://developers.cloudflare.com/api/operations/access-applications-list-access-applications)
+- **Glider Tunnel/Access home**: `glider-docker/cloudflared/docs/README.md` (centralized tunnel + Access docs/scripts for all services)
 
 ---
 

@@ -34,7 +34,60 @@ docker compose logs --tail=100 jukebox
 
 **Expected**: Container running, health returns `{"status":"ok","app":"Jukebox"}`, no errors in logs
 
-### 4. New Feature Tests
+### 4. Systemic Log Review (Required for Major Builds)
+
+**When to Run**: After major feature releases (v0.X.0), before production deployment, when investigating workflow issues
+
+**Purpose**: Detect systemic issues across the complete Jukebox → Lidarr → Download → Media Server workflow
+
+#### Quick Scan All Services for Errors/Warnings
+```bash
+for service in jukebox lidarr prowlarr qbittorrent_vpn navidrome jellyfin plex; do
+  echo "=== $service ==="
+  docker logs $service --tail=30 2>&1 | grep -iE "error|warn|fatal|crash|fail" | head -10
+  echo
+done
+```
+
+#### Red Flags to Investigate:
+- [ ] **Jukebox**: Repeated "Could not fetch album" warnings → Stale album IDs in database (BUG: needs cleanup)
+- [ ] **Jukebox**: Python deprecation warnings → Update datetime calls to timezone-aware
+- [ ] **Lidarr**: "Album with ID X does not exist" errors → Database integrity issue (cross-reference with Jukebox)
+- [ ] **Lidarr**: "Not scanning ... not a subdirectory of root folder" → Path configuration mismatch
+- [ ] **Plex**: Crash dumps → Service instability (external issue, document for user)
+- [ ] **Download Client**: No activity during expected downloads → Indexer or Prowlarr connectivity issues
+
+#### Full Service Log Commands (when needed):
+```bash
+# Jukebox - Check request processing
+docker compose logs --tail=100 jukebox | grep -E "WARNING|ERROR|Album|STAGING|UNMONITOR"
+
+# Lidarr - Check artist/album operations
+docker logs lidarr --tail=100 2>&1 | grep -E "Error|Warn|AddArtist|RefreshAlbum|AlbumSearch|DiskScan"
+
+# Prowlarr - Check indexer health
+docker logs prowlarr --tail=50 2>&1 | grep -E "Info.*Searching|disabled|failed"
+
+# Navidrome - Check streaming success
+docker logs navidrome --tail=30 2>&1 | grep -E "Streaming|Scrobbled|error"
+
+# Jellyfin - Check library updates
+docker logs jellyfin --tail=30 2>&1 | grep -E "LibraryMonitor|refresh|error"
+
+# Plex - Check for crashes
+docker logs plex --tail=50 2>&1 | grep -iE "crash|error|fatal" | head -20
+```
+
+#### Document Issues Found:
+- [ ] Add systemic issues to TODO.md with priority and investigation plan
+- [ ] Cross-reference errors between services (e.g., Jukebox album ID vs Lidarr album existence)
+- [ ] Note any external service issues (Plex crashes, indexer downtime) for user awareness
+
+**Reference**: See AGENT-HANDOFF.md "Service Log Locations & Monitoring" section for detailed log analysis guide
+
+---
+
+### 5. New Feature Tests
 
 Test each new feature/fix implemented in this stage:
 
@@ -44,7 +97,7 @@ Test each new feature/fix implemented in this stage:
 - [ ] Search flicker: Type "Frank Sinatra" slowly → results stay visible
 - [ ] Album search: Search for obscure album → fallback search triggers
 
-### 5. Regression Tests
+### 6. Regression Tests
 
 Core functionality that must continue working:
 
@@ -68,7 +121,7 @@ Core functionality that must continue working:
 - [ ] Downloading request shows progress
 - [ ] Completed request shows "completed" status
 
-### 6. Bug Fixes
+### 7. Bug Fixes
 
 If issues found:
 - [ ] Document bug in comments/notes
@@ -76,14 +129,14 @@ If issues found:
 - [ ] Re-run relevant tests (goto step 2)
 - [ ] Mark fixed bugs in TODO.md
 
-### 7. Validation
+### 8. Validation
 
 - [ ] No JavaScript console errors (check browser DevTools)
 - [ ] No Python exceptions in logs
 - [ ] Mobile UX tested (or defer to production)
 - [ ] All stage tests passing
 
-### 8. Documentation Updates
+### 9. Documentation Updates
 
 Update these files to reflect stage completion:
 
@@ -102,7 +155,7 @@ Update these files to reflect stage completion:
 - [ ] Add any new gotchas/issues discovered
 - [ ] Update project status if changed
 
-### 9. Commit & Push
+### 10. Commit & Push
 
 ```bash
 # Stage changes
@@ -149,7 +202,7 @@ EOF
 git push
 ```
 
-### 10. Stage Complete
+### 11. Stage Complete
 
 - [ ] Git commit created and pushed
 - [ ] All tests passing

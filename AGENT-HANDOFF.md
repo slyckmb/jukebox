@@ -1,7 +1,7 @@
 # Jukebox Agent Handoff
 
 **Date**: 2025-11-26
-**Version**: v0.6.9
+**Version**: v0.6.10
 **Repo**: /home/michael/dev/work/jukebox
 **Production**: https://jukebox.bikejeepyoga.com
 
@@ -9,37 +9,83 @@
 
 ## Project Status
 
-### Current State: v0.6.9 - Album-Specific Tracking & Bug Fixes ✅
+### Current State: v0.6.10 - Production Ready with Full Monitoring ✅
 
 **Recent Accomplishments** (this session):
-- ✅ **v0.6.9 Stage 1**: Fixed 3 critical bugs with album-specific status tracking
-- ✅ **Root Cause Analysis**: Identified artist-wide vs album-specific stats issue
-- ✅ **Database Migration**: Added album-level tracking (migration 004)
-- ✅ **Defensive Monitoring**: Auto-detects and re-enables unmonitored albums
-- ✅ **Enhanced Logging**: Better visibility into staging and monitoring operations
+- ✅ **v0.6.10 Stage 2**: 6 UX polish features deployed
+- ✅ **Systemic Log Review**: Comprehensive workflow monitoring established
+- ✅ **Critical Issues Found**: 4 new bugs/issues documented from log analysis
+- ✅ **Housekeeping**: Project cleanup, documentation reorganization
+- ✅ **Service Log Documentation**: Complete log locations guide for all 7 services
 
 **Production Status**:
-- Deployed: v0.6.9 running at https://jukebox.bikejeepyoga.com
+- Deployed: v0.6.10 running at https://jukebox.bikejeepyoga.com
 - Database: SQLite with album-specific columns (migration 004 applied)
-- Status: Stage 1 complete, ready for field testing
-- Backup: Pre-migration backup saved
+- Status: Production-ready, housekeeping complete
+- Monitoring: Full workflow log review established
 
-**What Works Now** (v0.6.9):
-- **Album-specific progress**: Shows "X of Y tracks" for individual albums (not artist-wide)
-- **Defensive monitoring**: Auto re-enables monitoring if albums become unmonitored
-- **Enhanced unmonitoring**: Verification step ensures all albums actually unmonitored
-- **Staging safeguards**: Verifies artist exists before using cached staging entry
-- Plus all v0.6.8 features (staging workflow, multiple albums from same artist, etc.)
+**What Works Now** (v0.6.10):
+- **All v0.6.9 features**: Album-specific tracking, defensive monitoring, enhanced logging
+- **Better UX**: Improved status labels, monitoring badges, filter pills, delete buttons
+- **Hide failed requests**: Toggle with localStorage persistence
+- **Status filters**: Quick filtering by request status with counts
+- **Complete monitoring**: Log review process for entire Jukebox → Lidarr → Download → Media Server workflow
 
-**What's New in v0.6.9**:
-- Per-album track count display (fixes "all cards show same progress" bug)
-- Monitoring verification and auto-recovery (fixes albums becoming unmonitored)
-- Enhanced logging with [STAGING] and [UNMONITOR] prefixes
-- Staging workflow verification before use
+**What's New in v0.6.10**:
+- Status badge improvements ("SEARCHING" instead of "SUBMITTED", "AVAILABLE" instead of "EXISTING")
+- Status subtext with helpful descriptions
+- Album monitoring badge (👁️ Monitored / ⚠️ Not Monitored)
+- Hide failed requests toggle
+- Delete request button (soft delete with confirmation)
+- Status filter pills with counts (All, Searching, Downloading, etc.)
+- Comprehensive log monitoring documentation (AGENT-HANDOFF.md)
+- Systemic log review added to STAGE-TEST-PLAN.md
 
 ---
 
-## Recent Session Summary (v0.6.9)
+## Recent Session Summary (v0.6.10)
+
+### v0.6.10 - Stage 2 UX Polish & Housekeeping (2025-11-26)
+
+**Phase 1: UX Features** (2 hours)
+1. Better status badge text - Changed confusing labels to clear ones
+2. Status subtext - Added helpful descriptions under badges
+3. Album monitoring badge - Visual indication of monitoring status
+4. Hide failed requests - Toggle button with localStorage
+5. Delete request button - Soft delete with confirmation dialog
+6. Status filter pills - Quick filtering with live counts
+
+**Phase 2: Systemic Log Review** (1.5 hours)
+- Reviewed logs from all 7 services (Jukebox, Lidarr, Prowlarr, qBit, Navidrome, Jellyfin, Plex)
+- Documented service log locations in AGENT-HANDOFF.md
+- Added systemic log review to STAGE-TEST-PLAN.md
+- Found 4 new issues requiring attention (see TODO.md)
+
+**Phase 3: Housekeeping** (1.5 hours)
+- Reorganized TODO.md by priority (P0-P3 structure)
+- Archived debug scripts to utils/debug-scripts/
+- Cleaned Python __pycache__ directories
+- Archived old STAGE plans to docs/archive/
+- Created comprehensive archive README
+- Updated all documentation to v0.6.10
+
+**Issues Found in Log Review**:
+1. **BUG v0.6.10-1** (P0): Stale album ID 2131 in database
+2. **BUG v0.6.10-2** (P1): Python datetime.utcnow() deprecation warnings
+3. **BUG v0.6.10-3** (P1): Lidarr root folder path error → FIXED by user
+4. **ISSUE v0.6.10-4** (P0-external): Plex server frequent crashes
+
+**Files Modified**:
+- app/app.py: Added delete endpoint, version updated to v0.6.10
+- app/templates/*: All 6 UX features implemented
+- TODO.md: Reorganized by priority, cleaner structure
+- AGENT-HANDOFF.md: Log locations, v0.6.10 summary
+- STAGE-TEST-PLAN.md: Added systemic log review step
+- docs/archive/: Old plans archived with README
+
+---
+
+## Previous Sessions
 
 ### v0.6.9 - Album-Specific Tracking (2025-11-26)
 
@@ -256,6 +302,115 @@ node -c app/static/js/app.js
 # Monitor album search triggers
 docker compose logs -f jukebox | grep "ALBUM SEARCH"
 ```
+
+---
+
+## Service Log Locations & Monitoring
+
+**Critical for debugging the complete Jukebox → Lidarr → Download → Media Server workflow**
+
+### Docker Container Log Access
+
+All services run as Docker containers. Access logs with:
+```bash
+docker logs <container_name> --tail=<lines> 2>&1
+# OR for compose-managed containers:
+docker compose logs --tail=<lines> <service_name>
+```
+
+### Service Log Locations
+
+#### 1. Jukebox (Flask App)
+- **Container**: `jukebox`
+- **Command**: `docker compose logs --tail=100 jukebox`
+- **Location**: `/home/michael/dev/work/jukebox/` (working directory)
+- **What to look for**:
+  - Request processing errors
+  - Lidarr API communication failures
+  - Album ID resolution issues (WARNING: Could not fetch album X for request Y)
+  - Python deprecation warnings (datetime.utcnow)
+  - Staging workflow logs ([STAGING] prefix)
+  - Album search triggers ([ALBUM SEARCH TRIGGER] prefix)
+
+#### 2. Lidarr (Music Management)
+- **Container**: `lidarr`
+- **Command**: `docker logs lidarr --tail=100 2>&1`
+- **What to look for**:
+  - `[Error] DiskScanService: Not scanning ... it's not a subdirectory of a defined root folder`
+  - `[Warn] LidarrErrorPipeline: Album with ID X does not exist` (CRITICAL - stale album references)
+  - `[Info] AddArtistService: Adding Artist` (confirms artist additions)
+  - `[Info] RefreshAlbumService: Updating Info` (metadata refreshes)
+  - `[Info] ReleaseSearchService: Searching` (download searches)
+  - `[Info] AlbumSearchService: Album search completed. X reports downloaded`
+  - API errors and ModelNotFoundException traces
+
+#### 3. Prowlarr (Indexer Management)
+- **Container**: `prowlarr`
+- **Command**: `docker logs prowlarr --tail=100 2>&1`
+- **What to look for**:
+  - `[Info] ReleaseSearchService: Searching indexer(s)` (search activity)
+  - Indexer availability and rate limiting
+  - API request patterns for music searches
+  - Connection issues to torrent/usenet indexers
+
+#### 4. qBittorrent (Download Client - Behind VPN)
+- **Container**: `qbittorrent_vpn`
+- **Command**: `docker logs qbittorrent_vpn --tail=50 2>&1`
+- **What to look for**:
+  - `[DEBUG] FILES_JSON` and `FILES list` (torrent file listings)
+  - `[Action] KV:result=resumed+tagged` or `tagged` (automatic tagging)
+  - Download progress and completion
+  - RAR detection scripts (`qbit_check_rar_on_add.sh`)
+
+#### 5. Navidrome (Music Streaming Server)
+- **Container**: `navidrome`
+- **Command**: `docker logs navidrome --tail=50 2>&1`
+- **What to look for**:
+  - `level=info msg="Streaming file"` (successful music delivery)
+  - `level=info msg=Scrobbled` (playback tracking)
+  - `level=info msg="Now Playing"` (active sessions)
+  - Artist/track names confirm music is accessible
+  - `level=error` (file access or transcoding failures)
+
+#### 6. Jellyfin (Media Server)
+- **Container**: `jellyfin`
+- **Command**: `docker logs jellyfin --tail=50 2>&1`
+- **What to look for**:
+  - `[INF] LibraryMonitor: lidarr_mike will be refreshed` (library scan triggers)
+  - `[INF] Optimize database` (scheduled maintenance)
+  - WebSocket keepalives (client connections)
+  - Library scanning activity
+  - Media file access errors
+
+#### 7. Plex (Media Server)
+- **Container**: `plex`
+- **Command**: `docker logs plex --tail=50 2>&1 | grep -v "DEBUG"`
+- **What to look for**:
+  - **CRITICAL**: `****** PLEX MEDIA SERVER CRASHED` (frequent crashes detected!)
+  - Library scanning activity
+  - Media file access patterns
+  - Crash dump locations
+
+### Systemic Log Review Checklist
+
+**When to Review**: After major builds, before releases, when investigating workflow issues
+
+Run this command sequence:
+```bash
+# Quick scan all services
+for service in jukebox lidarr prowlarr qbittorrent_vpn navidrome jellyfin plex; do
+  echo "=== $service ==="
+  docker logs $service --tail=30 2>&1 | grep -iE "error|warn|fatal|crash|fail" | head -10
+  echo
+done
+```
+
+**Red Flags to Investigate**:
+1. **Jukebox**: Repeated "Could not fetch album" warnings → Stale album IDs in database
+2. **Lidarr**: "Album with ID X does not exist" errors → Database cleanup needed
+3. **Lidarr**: "Not scanning ... not a subdirectory of root folder" → Path configuration issue
+4. **Plex**: Crash dumps → Service instability, may affect workflow
+5. **Download Client**: No activity during expected downloads → Indexer or Prowlarr issues
 
 ---
 

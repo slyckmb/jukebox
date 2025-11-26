@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.9"
+__version__ = "0.6.10"
 
 import os
 import sqlite3
@@ -1935,6 +1935,35 @@ def api_get_request(req_id: int):
     if not user["is_admin"] and row["user_id"] != user["id"]:
         return jsonify({"status": "error", "message": "forbidden"}), 403
     return jsonify(dict(row))
+
+
+@app.route("/api/requests/<int:req_id>", methods=["DELETE"])
+@login_required
+def delete_request(req_id: int):
+    """Soft-delete a request (sets status='deleted')."""
+    user = current_user()
+    with closing(get_db()) as conn:
+        # Verify request exists and user owns it (or is admin)
+        req = conn.execute(
+            "SELECT user_id FROM requests WHERE id = ?",
+            (req_id,)
+        ).fetchone()
+
+        if not req:
+            return jsonify({"error": "Request not found"}), 404
+
+        # Only owner or admin can delete
+        if not user["is_admin"] and req["user_id"] != user["id"]:
+            return jsonify({"error": "Forbidden"}), 403
+
+        # Soft delete: set status to 'deleted'
+        conn.execute(
+            "UPDATE requests SET status = 'deleted', updated_at = ? WHERE id = ?",
+            (datetime.utcnow().isoformat(), req_id)
+        )
+        conn.commit()
+
+    return jsonify({"success": True})
 
 
 # --- Main ---------------------------------------------------------------------------

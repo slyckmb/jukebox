@@ -28,6 +28,36 @@
       <p class="text-secondary">Tap the + button to request music</p>
     </div>
     {% else %}
+
+    <!-- Filter Controls (v0.6.10) -->
+    <div class="filter-controls">
+      <!-- Status Filter Pills -->
+      <div class="status-filter-pills">
+        <button class="filter-pill active" data-status="all" onclick="filterByStatus('all')">
+          All <span class="pill-count" id="count-all">0</span>
+        </button>
+        <button class="filter-pill" data-status="submitted" onclick="filterByStatus('submitted')">
+          Searching <span class="pill-count" id="count-submitted">0</span>
+        </button>
+        <button class="filter-pill" data-status="downloading" onclick="filterByStatus('downloading')">
+          Downloading <span class="pill-count" id="count-downloading">0</span>
+        </button>
+        <button class="filter-pill" data-status="completed" onclick="filterByStatus('completed')">
+          Completed <span class="pill-count" id="count-completed">0</span>
+        </button>
+        <button class="filter-pill" data-status="existing" onclick="filterByStatus('existing')">
+          Available <span class="pill-count" id="count-existing">0</span>
+        </button>
+        <button class="filter-pill" data-status="failed" onclick="filterByStatus('failed')">
+          Failed <span class="pill-count" id="count-failed">0</span>
+        </button>
+      </div>
+
+      <!-- Hide Failed Toggle -->
+      <button id="toggle-failed-btn" class="btn btn-sm btn-secondary" onclick="toggleFailedRequests()">
+        Hide Failed Requests
+      </button>
+    </div>
     <div class="request-list">
       {% for req in rows %}
         {{ request_card(req, media_servers) }}
@@ -161,6 +191,32 @@
   margin-bottom: var(--spacing-xs);
 }
 
+.card-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  opacity: 0.5;
+  transition: opacity 0.2s ease, transform 0.1s ease;
+  line-height: 1;
+}
+
+.delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.delete-btn:active {
+  transform: scale(0.95);
+}
+
 .artist-name {
   font-size: var(--font-lg);
   font-weight: 600;
@@ -202,7 +258,8 @@
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  flex-direction: column;
+  gap: 2px;
   padding: 4px 12px;
   border-radius: var(--radius-full);
   font-size: var(--font-xs);
@@ -210,6 +267,14 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
+}
+
+.status-subtext {
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
 }
 
 .status-new {
@@ -230,6 +295,33 @@
 .status-existing {
   background: rgba(100, 116, 139, 0.1);
   color: var(--status-existing);
+}
+
+/* Monitoring Status Badge (v0.6.10) */
+.monitoring-status {
+  margin-top: var(--spacing-xs);
+}
+
+.monitor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.monitor-badge.monitored {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.monitor-badge.unmonitored {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 /* Error Message */
@@ -588,5 +680,165 @@
     padding-bottom: 0;
   }
 }
+
+/* Filter Controls (v0.6.10) */
+.filter-controls {
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.status-filter-pills {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.filter-pill:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-color);
+}
+
+.filter-pill.active {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+  font-weight: 600;
+}
+
+.pill-count {
+  display: inline-block;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  margin-left: 4px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.filter-pill.active .pill-count {
+  background: rgba(255, 255, 255, 0.3);
+}
 </style>
+
+<script>
+// Delete Request (v0.6.10)
+async function deleteRequest(requestId) {
+  if (!confirm('Are you sure you want to delete this request?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/requests/${requestId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      alert(`Failed to delete: ${error.error || 'Unknown error'}`);
+      return;
+    }
+
+    // Remove the card from the DOM
+    const card = document.querySelector(`.request-card[data-request-id="${requestId}"]`);
+    if (card) {
+      card.style.transition = 'opacity 0.3s ease';
+      card.style.opacity = '0';
+      setTimeout(() => card.remove(), 300);
+    }
+  } catch (err) {
+    console.error('Delete failed:', err);
+    alert('Failed to delete request. Please try again.');
+  }
+}
+
+// Status Filter Pills (v0.6.10)
+function filterByStatus(status) {
+  // Save selected filter to localStorage
+  localStorage.setItem('statusFilter', status);
+
+  // Update active pill
+  document.querySelectorAll('.filter-pill').forEach(pill => {
+    pill.classList.remove('active');
+  });
+  document.querySelector(`.filter-pill[data-status="${status}"]`).classList.add('active');
+
+  // Filter cards
+  const cards = document.querySelectorAll('.request-card');
+  cards.forEach(card => {
+    const cardStatus = card.getAttribute('data-status');
+    if (status === 'all' || cardStatus === status) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+function updateStatusCounts() {
+  const statuses = ['submitted', 'downloading', 'completed', 'existing', 'failed'];
+  const cards = document.querySelectorAll('.request-card');
+
+  // Count total (excluding deleted)
+  const total = cards.length;
+  document.getElementById('count-all').textContent = total;
+
+  // Count each status
+  statuses.forEach(status => {
+    const count = document.querySelectorAll(`.request-card[data-status="${status}"]`).length;
+    const countEl = document.getElementById(`count-${status}`);
+    if (countEl) {
+      countEl.textContent = count;
+    }
+  });
+}
+
+// Hide Failed Requests Toggle (v0.6.10)
+function toggleFailedRequests() {
+  const hidden = localStorage.getItem('hideFailedRequests') === 'true';
+  const newState = !hidden;
+  localStorage.setItem('hideFailedRequests', newState);
+
+  document.querySelectorAll('.request-card[data-status="failed"]').forEach(card => {
+    card.style.display = newState ? 'none' : 'block';
+  });
+
+  const btn = document.getElementById('toggle-failed-btn');
+  btn.textContent = newState ? 'Show Failed Requests' : 'Hide Failed Requests';
+}
+
+// Apply saved preferences on page load
+document.addEventListener('DOMContentLoaded', () => {
+  // Update counts
+  updateStatusCounts();
+
+  // Apply saved status filter
+  const savedFilter = localStorage.getItem('statusFilter') || 'all';
+  if (savedFilter !== 'all') {
+    filterByStatus(savedFilter);
+  }
+
+  // Apply saved hide failed preference
+  if (localStorage.getItem('hideFailedRequests') === 'true') {
+    toggleFailedRequests();
+  }
+});
+</script>
 {% endblock %}

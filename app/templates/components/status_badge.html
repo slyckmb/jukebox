@@ -2,17 +2,24 @@
 <span class="status-badge status-{{ status }}">
   {% if status == 'new' %}
     <span class="status-icon">🔵</span>
+    <span class="status-text">NEW</span>
   {% elif status == 'submitted' %}
-    <span class="status-icon">🕐</span>
+    <span class="status-icon">🔍</span>
+    <span class="status-text">SEARCHING</span>
+    <span class="status-subtext">Lidarr is searching...</span>
   {% elif status == 'downloading' %}
     <span class="status-icon">📥</span>
+    <span class="status-text">DOWNLOADING</span>
+    <span class="status-subtext">Download in progress</span>
   {% elif status == 'completed' %}
     <span class="status-icon">✅</span>
+    <span class="status-text">COMPLETED</span>
   {% elif status == 'failed' %}
     <span class="status-icon">✕</span>
+    <span class="status-text">FAILED</span>
   {% elif status == 'existing' %}
-    <span class="status-icon">ℹ</span>
+    <span class="status-icon">✓</span>
+    <span class="status-text">AVAILABLE</span>
   {% endif %}
-  <span class="status-text">{{ status|upper }}</span>
 </span>
 {% endmacro %}

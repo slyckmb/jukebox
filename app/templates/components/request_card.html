@@ -1,10 +1,15 @@
 {% from 'components/status_badge.html' import status_badge %}
 
 {% macro request_card(req, media_servers) %}
-<div class="request-card" data-status="{{ req.status }}">
+<div class="request-card" data-status="{{ req.status }}" data-request-id="{{ req.id }}">
   <div class="card-header">
     <h3 class="artist-name">{{ req.artist_name }}</h3>
-    {{ status_badge(req.status) }}
+    <div class="card-header-right">
+      {{ status_badge(req.status) }}
+      <button class="delete-btn" onclick="deleteRequest({{ req.id }})" title="Delete request">
+        🗑️
+      </button>
+    </div>
   </div>
 
   {% if req.album_title %}
@@ -24,6 +29,17 @@
 
   {% if req.note %}
   <p class="card-note">{{ req.note }}</p>
+  {% endif %}
+
+  <!-- Album Monitoring Status (v0.6.10) -->
+  {% if req.status in ['submitted', 'downloading'] and req.lidarr_album_id %}
+  <div class="monitoring-status">
+    {% if req.album_monitored %}
+      <span class="monitor-badge monitored">👁️ Monitored</span>
+    {% elif req.album_monitored == False %}
+      <span class="monitor-badge unmonitored">⚠️ Not Monitored</span>
+    {% endif %}
+  </div>
   {% endif %}
 
   <!-- Download Progress (downloading status) -->
