@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.5"
+__version__ = "0.6.6"
 
 import os
 import sqlite3
@@ -1082,6 +1082,13 @@ def new_request():
                     conn.commit()
                 flash(f"✗ {friendly_error}", "danger")
                 return redirect(url_for("list_requests"))
+
+            # BUG FIX 0.6.5-1: Remove artist from staging after successful move
+            # This prevents subsequent album requests from re-triggering "unmonitor all"
+            app.logger.info(f"Removing artist {lidarr_artist_id} from staging after successful move")
+            with closing(get_db()) as conn:
+                conn.execute("DELETE FROM artist_staging WHERE lidarr_artist_id = ?", (lidarr_artist_id,))
+                conn.commit()
 
             # Successfully moved - now find and monitor the selected album ONLY
             album_data, album_err = find_album_in_artist(lidarr_artist_id, album_title)
