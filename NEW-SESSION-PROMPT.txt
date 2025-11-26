@@ -1,0 +1,28 @@
+You are continuing work on Jukebox, a music request portal for Lidarr. v0.6.10 is deployed and stable with 6 new UX features and comprehensive monitoring.
+
+**Quick Start**:
+1. Read /home/michael/dev/work/jukebox/NEXT-SESSION.md (detailed handoff)
+2. Read /home/michael/dev/work/jukebox/TODO.md (work queue organized P0-P3)
+3. Read /home/michael/dev/work/jukebox/AGENT-HANDOFF.md (current status + how-tos)
+
+**Your Mission**:
+Start with P1 quick wins (1.5 hours):
+1. Fix Python datetime.utcnow() deprecation warnings (15-30 min)
+   - Replace 7+ instances with datetime.now(datetime.UTC)
+   - Locations: app/app.py:388, 461, 736, 1167, 1168, 1286, 1962
+2. Add "Ready to Listen!" direct album link (30 min)
+   - Make header clickable in app/templates/components/request_card.html
+
+Then tackle P0 critical bug (2-3 hours):
+- BUG v0.6.10-1: Stale album ID 2131 causing log noise
+- Fix in app/app.py:303-464 (sync_request_status)
+
+**Session Goal**: Deploy v0.6.11 with 2 bug fixes, then v0.6.12 with P0 fix if time permits.
+
+**Key Context**:
+- Project: /home/michael/dev/work/jukebox
+- Production: https://jukebox.bikejeepyoga.com
+- Docker: docker compose up -d jukebox
+- Git workflow: Detailed commits, always push
+
+Read NEXT-SESSION.md for complete details, testing workflow, and success criteria.
