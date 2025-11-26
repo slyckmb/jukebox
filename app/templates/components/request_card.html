@@ -29,13 +29,30 @@
   <!-- Download Progress (downloading status) -->
   {% if req.status == 'downloading' %}
   <div class="download-progress">
-    <div class="progress-bar-container">
-      {% set percent = (req.downloaded_albums / req.total_albums * 100) | int if req.total_albums > 0 else 0 %}
-      <div class="progress-bar" style="width: {{ percent }}%"></div>
-    </div>
-    <p class="progress-text">
-      📥 {{ req.downloaded_albums }} of {{ req.total_albums }} albums ({{ percent }}%)
-    </p>
+    {% if req.album_total_tracks and req.album_total_tracks > 0 %}
+      {# v0.6.9: Show per-album track progress #}
+      <div class="progress-bar-container">
+        {% set percent = (req.album_downloaded_tracks / req.album_total_tracks * 100) | int %}
+        <div class="progress-bar" style="width: {{ percent }}%"></div>
+      </div>
+      <p class="progress-text">
+        📥 {{ req.album_downloaded_tracks }} of {{ req.album_total_tracks }} tracks ({{ percent }}%)
+      </p>
+    {% elif req.total_albums and req.total_albums > 0 %}
+      {# Fallback: Show artist-wide album progress (legacy) #}
+      <div class="progress-bar-container">
+        {% set percent = (req.downloaded_albums / req.total_albums * 100) | int %}
+        <div class="progress-bar" style="width: {{ percent }}%"></div>
+      </div>
+      <p class="progress-text">
+        📥 {{ req.downloaded_albums }} of {{ req.total_albums }} albums ({{ percent }}%)
+      </p>
+    {% else %}
+      {# No progress data available #}
+      <p class="progress-text">
+        📥 Searching...
+      </p>
+    {% endif %}
   </div>
   {% endif %}
 
@@ -71,7 +88,9 @@
       </a>
       {% endif %}
     </div>
-    {% if req.total_albums > 0 %}
+    {% if req.album_total_tracks and req.album_total_tracks > 0 %}
+    <p class="albums-complete">✓ Album complete ({{ req.album_total_tracks }} tracks)</p>
+    {% elif req.total_albums and req.total_albums > 0 %}
     <p class="albums-complete">All {{ req.total_albums }} albums downloaded</p>
     {% endif %}
   </div>

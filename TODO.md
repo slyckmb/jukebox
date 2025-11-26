@@ -1,15 +1,187 @@
 # Jukebox TODO
 
 **Current Version**: v0.6.8
-**Last Updated**: 2025-11-25
+**Next Version**: v0.6.9 (in planning)
+**Last Updated**: 2025-11-26
+
+---
+
+## ✅ v0.6.9 - DEPLOYED AND READY FOR TESTING
+
+**Status**: Stage 1 COMPLETE - Ready for field testing
+**Plan Document**: See `PLAN-v0.6.9.md` for detailed analysis and implementation steps
+
+**Quick Summary**:
+- **Root Cause**: Status sync tracked ARTIST-WIDE stats instead of individual albums
+- **Solution**: Added album-specific tracking (tracks, monitoring status) per request
+- **Impact**: Fixes 3 critical bugs + foundation for Stage 2 UX features
+- **Deployment**: v0.6.9 deployed 2025-11-26
+
+**✅ STAGE 1: Critical Bug Fixes** (COMPLETE - 6 hours)
+1. ✅ Phase 0: Root cause analysis
+2. ✅ Phase 1: Album-specific status tracking
+   - Database migration 004 applied
+   - New columns: `album_total_tracks`, `album_downloaded_tracks`, `album_monitored`
+   - Updated sync logic to query individual albums
+   - Frontend shows per-album track counts
+3. ✅ Phase 2: Fix album monitoring bugs
+   - Defensive re-monitoring when albums become unmonitored
+   - Enhanced unmonitor_all_albums() with verification step
+4. ✅ Phase 3: Prevent unrequested downloads
+   - Staging workflow safeguards
+   - Enhanced logging throughout
+
+**🛑 TESTING PHASE** - Field test v0.6.9 before Stage 2
+
+**Next Steps**:
+1. User tests v0.6.9 in production
+2. Verify bugs are fixed (Caravan Palace cards show different track counts)
+3. Check logs for defensive monitoring warnings
+4. Gather feedback and identify any new issues
+5. **Decision point**: Proceed to Stage 2 or iterate on fixes
+
+**🎨 STAGE 2: Polish & UX** (PLANNED - 3.5-4.5 hours when ready)
+- Phase 4: Enhanced logging (1-2 hrs)
+- Phase 5: Quick-win UX improvements (2-2.5 hrs):
+  - Better status badge text (fixes BUG #4)
+  - Album monitoring badge
+  - Delete request button
+  - Hide failed requests toggle
+  - Status subtext
+  - Status filter pills
+
+**Stage 2 will be scheduled after Stage 1 field testing is complete**
 
 ---
 
 ## Active Tasks
 
-### Tier 1: Feature Requests
+### Tier 1: Critical Bugs (P0) - Fix First! 🚨
 
-#### New Feature: API Health Check Button 🎯
+#### BUG v0.6.8-1: Caravan Palace albums unmonitored after initial monitoring ✅ ROOT CAUSE FOUND
+- [x] **Issue**: Albums that were monitored are now unmonitored in Lidarr
+- [x] **Root Cause**: Status sync doesn't verify album monitoring status, only checks downloads
+  - `sync_request_status()` queries artist statistics (all albums) not individual album
+  - No monitoring verification → albums can become unmonitored without detection
+  - Possible Lidarr auto-refresh or metadata update resetting monitored status
+- [x] **Impact**: CRITICAL - Albums won't download if unmonitored
+- [x] **Priority**: P0 - Data integrity issue
+- [x] **Solution**: Phase 2 of v0.6.9 plan - Add monitoring verification + re-enable if disabled
+- [x] **Location**: app.py:303-399 (sync_request_status)
+
+#### BUG v0.6.8-2: Unrequested album auto-downloaded and marked completed ✅ ROOT CAUSE FOUND
+- [x] **Issue**: Album `<|°_°|>` from Caravan Palace was NOT requested but shows as completed
+- [x] **Root Cause**: Likely race condition in staging workflow
+  - Lidarr metadata refresh auto-monitors some albums (depends on settings)
+  - `unmonitor_all_albums()` called but may have timing issue or fail silently
+  - Download starts before unmonitoring completes
+- [x] **Impact**: CRITICAL - Monitoring/downloading wrong albums
+- [x] **Priority**: P0 - Data integrity issue
+- [x] **Solution**: Phase 3 of v0.6.9 plan - Better logging + verification in unmonitor workflow
+- [x] **Location**: app.py:751-788 (unmonitor_all_albums), staging workflow
+
+---
+
+### Tier 2: High-Impact UX Issues (P1) - Fix Next
+
+#### UX ISSUE: Download progress shows artist-wide stats instead of per-album ✅ SOLUTION DESIGNED
+- [x] **Issue**: Request card shows "📥 4 of 5 albums (80%)" for ALL Caravan Palace requests
+- [x] **Root Cause**: `sync_request_status()` stores artist-wide `total_albums` and `downloaded_albums`
+  - All requests for same artist get same numbers (5 albums total, 4 downloaded)
+  - Frontend displays these numbers without knowing which specific album
+- [x] **Expected**: Each card should show status for THAT specific album only
+  - "Caravan Palace - Panic" → "10/10 tracks" (100% for this album)
+  - "Caravan Palace - Chronologic" → "0/12 tracks" (0% for this album)
+- [x] **Impact**: HIGH - Users can't track individual album progress
+- [x] **Priority**: P1 - Core UX issue
+- [x] **Solution**: Phase 1 of v0.6.9 plan - Track `album_total_tracks` and `album_downloaded_tracks` per request
+- [x] **Location**: app.py:303-399 (sync_request_status), database schema, frontend templates
+- [x] **Effort**: 2-3 hours (migration + backend + frontend)
+
+#### BUG #5: Lidarr status updates not syncing to request cards ✅ LIKELY FIXED in v0.6.9
+- [x] **Issue**: Request card statuses don't update to reflect Lidarr download progress
+- [x] **Root Cause**: Was showing artist-wide stats, not album-specific progress
+- [x] **Solution**: v0.6.9 now queries individual albums and shows per-album track counts
+- [x] **Status**: Fixed by v0.6.9 Phase 1 - needs field testing to confirm
+- [x] **Testing**: Load requests page and verify cards show correct per-album progress
+- [ ] **If still broken**: Investigate page load sync trigger timing
+- [x] **Location**: app.py:303-464 (sync_request_status - now album-specific)
+- [x] **Note**: This was the same root cause as the UX issue (artist-wide vs album-specific)
+
+---
+
+### Tier 2: Quick Win Features (P1) - Low Effort, High Reward ⚡
+
+#### NEW FEATURE: "Ready to Listen!" as Direct Album Link 🎯
+- [ ] **Request**: Make "Ready to Listen!" header a clickable link to open the album on Navidrome
+- [ ] **Current**: Text header with separate service buttons below
+- [ ] **Proposed**: Clickable header that opens album directly on Navidrome (primary service)
+- [ ] **Impact**: HIGH - Faster access to music, fewer clicks
+- [ ] **Priority**: P1 - Quick win UX improvement
+- [ ] **Effort**: 30 minutes (update template, add album search link)
+- [ ] **Location**: request_card.html "Ready to Listen!" section
+
+#### NEW FEATURE: Media Server Buttons for Completed Albums 🎯
+- [ ] **Request**: Show Plex/Jellyfin/Navidrome buttons when album is ready
+- [ ] **Status**: ✅ Already implemented! (request_card.html lines 43-96)
+- [ ] **Current State**:
+  - Navidrome: https://navidrome.bikejeepyoga.com ✅
+  - Jellyfin: https://jellyfin.bikejeepyoga.com ✅ (enabled)
+  - Plex: Uses remote access (investigate direct link options)
+- [ ] **Investigation Needed**:
+  - [ ] Test if current links work correctly for completed albums
+  - [ ] Investigate Plex direct link options (plex.bjy.com subdomain?)
+  - [ ] Verify Jellyfin search works with new subdomain
+- [ ] **Priority**: P1 - Feature already exists, just needs testing/polish
+- [ ] **Effort**: 1 hour (testing + optional Plex subdomain setup)
+
+---
+
+### Tier 3: Medium Priority Features (P2)
+
+#### INVESTIGATE: Partial Album Download Visibility 🔍
+- [ ] **Issue**: When album is partially downloaded (e.g., 11 of 14 tracks), unclear if this is shown
+- [ ] **Expected**: User should see "📥 11 of 14 tracks (79%)" for partial downloads
+- [ ] **Current**: v0.6.9 shows per-album track counts - need to verify partial state handling
+- [ ] **Investigation**:
+  - [ ] Test with partially downloaded album
+  - [ ] Check if status shows "downloading" with correct track count
+  - [ ] Verify progress bar reflects partial state
+- [ ] **Enhancement**: If not shown, add better Lidarr detail communication:
+  - Show which tracks are missing
+  - Display quality info (bitrate, format)
+  - Show download source/indexer info
+- [ ] **Priority**: P2 - Nice to have for transparency
+- [ ] **Effort**: 2-3 hours (investigation + potential enhancement)
+
+#### INVESTIGATE: Real-Time Download Status from Download Clients 🔍
+- [ ] **Issue**: Album shows "submitted" while downloading, no progress until complete
+- [ ] **Current**: Lidarr shows cloud icon in Activity, but we don't display it
+- [ ] **Example**: Lidarr shows "Grabbed from FearNoPeer via qBittorrent" with detailed info
+- [ ] **Proposed**: Tap into qBittorrent/SABnzbd APIs for real-time status
+- [ ] **Potential Data**:
+  - Download progress: "Downloading: 45% (3.2 GB / 7.1 GB)"
+  - Download speed: "Speed: 8.5 MB/s"
+  - ETA: "ETA: 12 minutes"
+  - Indexer: "Source: FearNoPeer"
+  - Release info: "Quality: 24BIT-48KHZ-WEB-FLAC"
+- [ ] **Investigation**:
+  - [ ] Check Lidarr API for queue/activity endpoints
+  - [ ] Research qBittorrent API integration
+  - [ ] Research SABnzbd API integration
+  - [ ] Design UI for download progress display
+- [ ] **Priority**: P2 - Nice to have for power users
+- [ ] **Effort**: 4-6 hours (API research + implementation + UI)
+- [ ] **Risk**: Medium (requires multiple API integrations)
+
+#### BUG #4: Unclear card status - "existing" means artist or album?
+- [ ] **Issue**: Request card shows "existing" status - ambiguous
+- [ ] **Expected**: Clear distinction - "Artist exists, album monitoring" vs "Album already available"
+- [ ] **Impact**: LOW-MEDIUM - Status clarity
+- [ ] **Priority**: P2 - UX polish (will be fixed in Stage 2 Phase 5A)
+- [ ] **Location**: Request card rendering logic, status badge
+
+#### Feature: API Health Check Button 🎯
 - [ ] **Request**: Add button to ping MusicBrainz and Lidarr APIs
 - [ ] **Use Case**: Debug/dev - verify connections without making requests
 - [ ] **Location**: Could add to requests page or new admin page
@@ -18,31 +190,16 @@
 
 ---
 
-### Tier 2: Open Bugs - Field Test Issues
+### Tier 4: Known Limitations (P3)
 
 #### BUG #1: Artist search requires full exact name
 - [ ] **Issue**: Autocomplete doesn't show results until full name is typed
 - [ ] **Expected**: Fuzzy search should match partial names like "zach" or "bryan"
 - [ ] **Impact**: MEDIUM - Reduces discoverability, frustrates users
-- [ ] **Priority**: P1 - Important UX issue
+- [ ] **Priority**: P3 - Known limitation
 - [ ] **Root Cause**: MusicBrainz API limitation - not our code
 - [ ] **Note**: May require local MB cache (Tier 4 feature)
 - [ ] **Status**: v0.6.8 - Known limitation, documented
-
-#### BUG #4: Unclear card status - "existing" means artist or album?
-- [ ] **Issue**: Request card shows "existing" status - ambiguous
-- [ ] **Expected**: Clear distinction - "Artist exists, album monitoring" vs "Album already available"
-- [ ] **Impact**: LOW-MEDIUM - Status clarity
-- [ ] **Priority**: P2 - UX polish
-- [ ] **Location**: Request card rendering logic, status badge
-
-#### BUG #5: Lidarr status updates not syncing to request cards
-- [ ] **Issue**: Request card statuses don't update to reflect Lidarr download progress
-- [ ] **Expected**: Cards should show "downloading", "completed", progress bars
-- [ ] **Impact**: HIGH - Users can't track request progress
-- [ ] **Priority**: P1 - Core functionality
-- [ ] **Investigation**: Check `sync_active_requests()` and `sync_request_status()` functions
-- [ ] **Location**: Status sync logic (app/app.py), possibly page load sync trigger
 
 ---
 

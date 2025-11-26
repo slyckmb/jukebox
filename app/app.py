@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.8"
+__version__ = "0.6.9"
 
 import os
 import sqlite3
@@ -302,16 +302,18 @@ def check_artist_exists_in_lidarr(foreign_artist_id: str):
 
 def sync_request_status(request_id: int) -> bool:
     """
-    Sync request status with Lidarr.
+    Sync request status with Lidarr (ALBUM-SPECIFIC).
     Returns True if status changed, False otherwise.
 
+    v0.6.9: Now tracks individual album progress instead of artist-wide statistics.
+
     Status Transitions:
-    - submitted → downloading (artist monitored, albums downloading)
-    - downloading → completed (all albums downloaded)
+    - submitted → downloading (album monitored, tracks downloading)
+    - downloading → completed (all tracks for THIS album downloaded)
     """
     with closing(get_db()) as conn:
         req = conn.execute(
-            "SELECT id, lidarr_artist_id, status FROM requests WHERE id = ?",
+            "SELECT id, lidarr_artist_id, lidarr_album_id, status FROM requests WHERE id = ?",
             (request_id,)
         ).fetchone()
 
@@ -323,10 +325,90 @@ def sync_request_status(request_id: int) -> bool:
             return False
 
         lidarr_artist_id = req["lidarr_artist_id"]
+        lidarr_album_id = req["lidarr_album_id"]
+
         if not lidarr_artist_id:
             return False
 
         try:
+            # v0.6.9: NEW - Query the SPECIFIC album instead of all artist albums
+            if lidarr_album_id:
+                # Get album-specific data
+                album_url = f"{LIDARR_URL}/album/{lidarr_album_id}"
+                album_resp = requests.get(album_url, params={"apikey": LIDARR_API_KEY}, timeout=10)
+
+                if album_resp.status_code == 200:
+                    album_data = album_resp.json()
+
+                    # Check THIS album's monitoring status
+                    album_monitored = album_data.get("monitored", False)
+
+                    # Get THIS album's track statistics
+                    album_stats = album_data.get("statistics", {})
+                    album_total_tracks = album_stats.get("trackCount", 0)
+                    album_downloaded_tracks = album_stats.get("trackFileCount", 0)
+
+                    # v0.6.9 Phase 2: DEFENSIVE MONITORING VERIFICATION
+                    # If album is NOT monitored but download is incomplete, re-enable monitoring
+                    if not album_monitored and album_downloaded_tracks < album_total_tracks and album_total_tracks > 0:
+                        app.logger.warning(
+                            f"⚠️  Album {lidarr_album_id} for request {request_id} became unmonitored! "
+                            f"Re-enabling monitoring (defensive fix for bug v0.6.8-1)"
+                        )
+                        # Try to re-enable monitoring
+                        remonitor_success, remonitor_err = set_album_monitored(lidarr_album_id, monitored=True)
+                        if remonitor_success:
+                            app.logger.info(f"✓ Successfully re-enabled monitoring for album {lidarr_album_id}")
+                            album_monitored = True  # Update local variable
+                            # Trigger search again
+                            trigger_album_search(lidarr_album_id)
+                        else:
+                            app.logger.error(f"✗ Failed to re-enable monitoring for album {lidarr_album_id}: {remonitor_err}")
+
+                    # Determine status based on THIS album only
+                    old_status = req["status"]
+                    new_status = old_status
+
+                    if not album_monitored and album_downloaded_tracks == 0:
+                        new_status = "submitted"
+                    elif album_monitored and album_downloaded_tracks == 0:
+                        new_status = "submitted"  # Still searching
+                    elif album_downloaded_tracks > 0 and album_downloaded_tracks < album_total_tracks:
+                        new_status = "downloading"
+                    elif album_downloaded_tracks == album_total_tracks and album_total_tracks > 0:
+                        new_status = "completed"
+
+                    app.logger.info(
+                        f"Request {request_id}: {old_status} → {new_status} "
+                        f"(album {lidarr_album_id}: {album_downloaded_tracks}/{album_total_tracks} tracks, "
+                        f"monitored={album_monitored})"
+                    )
+
+                    # Update database with album-specific data
+                    now = datetime.utcnow().isoformat()
+                    conn.execute(
+                        """UPDATE requests
+                           SET status = ?,
+                               album_total_tracks = ?,
+                               album_downloaded_tracks = ?,
+                               album_monitored = ?,
+                               last_sync_at = ?,
+                               updated_at = ?
+                           WHERE id = ?""",
+                        (new_status, album_total_tracks, album_downloaded_tracks,
+                         album_monitored, now, now, request_id)
+                    )
+                    conn.commit()
+
+                    if new_status != old_status:
+                        app.logger.info(f"✓ Request {request_id} status changed: {old_status} → {new_status}")
+
+                    return new_status != old_status
+                else:
+                    app.logger.warning(f"Could not fetch album {lidarr_album_id} for request {request_id}")
+                    return False
+
+            # Fallback: If no album_id, use old artist-wide logic (backward compatibility)
             # Query Lidarr for artist status
             url = f"{LIDARR_URL}/artist/{lidarr_artist_id}"
             resp = requests.get(url, params={"apikey": LIDARR_API_KEY}, timeout=10)
@@ -341,7 +423,7 @@ def sync_request_status(request_id: int) -> bool:
             if not is_monitored:
                 return False
 
-            # Get album statistics
+            # Get album statistics (artist-wide)
             statistics = artist_data.get("statistics", {})
             total_albums = statistics.get("albumCount", 0)
 
@@ -375,7 +457,7 @@ def sync_request_status(request_id: int) -> bool:
 
             app.logger.info(f"Request {request_id}: {old_status} → {new_status} ({downloaded_count}/{total_albums} albums)")
 
-            # Update database
+            # Update database with artist-wide data (legacy)
             now = datetime.utcnow().isoformat()
             conn.execute(
                 """UPDATE requests
@@ -753,6 +835,8 @@ def unmonitor_all_albums(lidarr_artist_id: int):
     Set ALL albums for an artist to monitored=False.
     Used before moving artist to user to ensure only selected album is monitored.
 
+    v0.6.9 Phase 3: Enhanced logging and verification to prevent bug v0.6.8-2
+
     Returns (success: bool, error)
     """
     try:
@@ -768,23 +852,66 @@ def unmonitor_all_albums(lidarr_artist_id: int):
             return False, f"Failed to get albums: {resp.status_code}"
 
         albums = resp.json()
-        app.logger.info(f"Unmonitoring {len(albums)} albums for artist {lidarr_artist_id}")
+        app.logger.info(f"[UNMONITOR] Starting: {len(albums)} albums for artist {lidarr_artist_id}")
+
+        # v0.6.9: Log BEFORE state
+        for album in albums:
+            album_id = album.get("id")
+            album_title = album.get("title", "Unknown")
+            was_monitored = album.get("monitored", False)
+            app.logger.info(f"  [BEFORE] Album {album_id} '{album_title}': monitored={was_monitored}")
 
         # Update each album to monitored=False
+        failed_albums = []
         for album in albums:
             album["monitored"] = False
             album_id = album.get("id")
+            album_title = album.get("title", "Unknown")
 
             put_url = f"{LIDARR_URL}/album/{album_id}?apikey={LIDARR_API_KEY}"
             put_resp = requests.put(put_url, json=album, timeout=10)
 
             if put_resp.status_code not in (200, 202):
-                app.logger.warning(f"Failed to unmonitor album {album_id}: {put_resp.status_code}")
+                app.logger.warning(f"  [FAILED] Album {album_id} '{album_title}': {put_resp.status_code}")
+                failed_albums.append((album_id, album_title))
+            else:
+                app.logger.info(f"  [UNMONITORED] Album {album_id} '{album_title}'")
 
-        app.logger.info(f"✓ All albums unmonitored for artist {lidarr_artist_id}")
+        # v0.6.9: VERIFICATION - Re-query albums to confirm they're unmonitored
+        app.logger.info(f"[UNMONITOR] Verifying all albums are actually unmonitored...")
+        verify_resp = requests.get(
+            url,
+            params={"artistId": lidarr_artist_id, "apikey": LIDARR_API_KEY},
+            timeout=10
+        )
+
+        if verify_resp.status_code == 200:
+            verify_albums = verify_resp.json()
+            still_monitored = []
+            for album in verify_albums:
+                album_id = album.get("id")
+                album_title = album.get("title", "Unknown")
+                is_monitored = album.get("monitored", False)
+                if is_monitored:
+                    still_monitored.append((album_id, album_title))
+                    app.logger.warning(f"  [VERIFY FAILED] Album {album_id} '{album_title}' is STILL monitored!")
+
+            if still_monitored:
+                app.logger.error(
+                    f"⚠️  {len(still_monitored)} albums remain monitored after unmonitor attempt: {still_monitored}"
+                )
+            else:
+                app.logger.info(f"✓ Verification passed: All {len(verify_albums)} albums confirmed unmonitored")
+
+        if failed_albums:
+            app.logger.warning(f"[UNMONITOR] Completed with {len(failed_albums)} failures: {failed_albums}")
+        else:
+            app.logger.info(f"✓ [UNMONITOR] Successfully unmonitored all albums for artist {lidarr_artist_id}")
+
         return True, None
 
     except Exception as exc:
+        app.logger.error(f"[UNMONITOR] Exception: {exc}")
         return False, f"Unmonitor failed: {exc}"
 
 
@@ -1064,17 +1191,34 @@ def new_request():
         # NEW: Check if artist exists in staging first
         staging_artist, staging_err = find_staging_artist(foreign_artist_id)
 
-        app.logger.info(f"Checking staging for artist {artist_display_name} (MB ID: {foreign_artist_id}): found={staging_artist is not None}")
+        app.logger.info(f"[STAGING] Checking for artist {artist_display_name} (MB ID: {foreign_artist_id}): found={staging_artist is not None}")
 
         if staging_artist:
             # Artist is in staging - move to user space
             lidarr_artist_id = staging_artist["lidarr_artist_id"]
 
+            # v0.6.9 Phase 3: Verify artist still exists in Lidarr before proceeding
+            verify_url = f"{LIDARR_URL}/artist/{lidarr_artist_id}"
+            verify_resp = requests.get(verify_url, params={"apikey": LIDARR_API_KEY}, timeout=10)
+            if verify_resp.status_code == 404:
+                app.logger.error(
+                    f"[STAGING] Artist {lidarr_artist_id} in staging but NOT in Lidarr (deleted?) - "
+                    f"removing from staging"
+                )
+                with closing(get_db()) as conn:
+                    conn.execute("DELETE FROM artist_staging WHERE lidarr_artist_id = ?", (lidarr_artist_id,))
+                    conn.commit()
+                # Fall through to create new artist
+                staging_artist = None
+
+        if staging_artist:
+            app.logger.info(f"[STAGING] Using existing artist {lidarr_artist_id} from staging")
+
             # BUG FIX #7: Unmonitor all albums before moving (ensures only selected album gets monitored)
-            app.logger.info(f"Unmonitoring all albums for artist {lidarr_artist_id} before move")
+            app.logger.info(f"[STAGING] Unmonitoring all albums for artist {lidarr_artist_id} before move")
             unmonitor_success, unmonitor_err = unmonitor_all_albums(lidarr_artist_id)
             if not unmonitor_success:
-                app.logger.warning(f"Failed to unmonitor albums: {unmonitor_err} - continuing anyway")
+                app.logger.warning(f"[STAGING] Failed to unmonitor albums: {unmonitor_err} - continuing anyway")
 
             success, move_err = move_artist_to_user(lidarr_artist_id, user["username"])
 

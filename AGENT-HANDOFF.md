@@ -1,7 +1,7 @@
 # Jukebox Agent Handoff
 
-**Date**: 2025-11-25
-**Version**: v0.6.8
+**Date**: 2025-11-26
+**Version**: v0.6.9
 **Repo**: /home/michael/dev/work/jukebox
 **Production**: https://jukebox.bikejeepyoga.com
 
@@ -9,29 +9,75 @@
 
 ## Project Status
 
-### Current State: v0.6.8 - Staging Workflow Stabilized ✅
+### Current State: v0.6.9 - Album-Specific Tracking & Bug Fixes ✅
 
 **Recent Accomplishments** (this session):
-- ✅ **Stage 3**: Artist staging workflow fully implemented and deployed (v0.6.0-v0.6.3)
-- ✅ **Stage 4**: Quick wins - immediate album search, better status messages, version badge (v0.6.0)
-- ✅ **Bug Fixes**: Fixed 5 critical staging workflow bugs through field testing (v0.6.4-v0.6.8)
+- ✅ **v0.6.9 Stage 1**: Fixed 3 critical bugs with album-specific status tracking
+- ✅ **Root Cause Analysis**: Identified artist-wide vs album-specific stats issue
+- ✅ **Database Migration**: Added album-level tracking (migration 004)
+- ✅ **Defensive Monitoring**: Auto-detects and re-enables unmonitored albums
+- ✅ **Enhanced Logging**: Better visibility into staging and monitoring operations
 
 **Production Status**:
-- Deployed: v0.6.8 running at https://jukebox.bikejeepyoga.com
-- Database: SQLite with `artist_staging` table (migration 003 applied)
-- Status: Stable, field tested, ready for continued use
+- Deployed: v0.6.9 running at https://jukebox.bikejeepyoga.com
+- Database: SQLite with album-specific columns (migration 004 applied)
+- Status: Stage 1 complete, ready for field testing
+- Backup: Pre-migration backup saved
 
-**What Works Now**:
-- Artist staging workflow (Pull Albums → select album → submit)
-- Multiple album requests from same artist (all stay monitored)
-- Automatic album search triggers after monitoring
-- Deleted artist cleanup (stale staging entries removed)
-- Artist name collision handling (unique paths with MB ID suffix)
-- Staging cleanup after move (prevents duplicate processing)
+**What Works Now** (v0.6.9):
+- **Album-specific progress**: Shows "X of Y tracks" for individual albums (not artist-wide)
+- **Defensive monitoring**: Auto re-enables monitoring if albums become unmonitored
+- **Enhanced unmonitoring**: Verification step ensures all albums actually unmonitored
+- **Staging safeguards**: Verifies artist exists before using cached staging entry
+- Plus all v0.6.8 features (staging workflow, multiple albums from same artist, etc.)
+
+**What's New in v0.6.9**:
+- Per-album track count display (fixes "all cards show same progress" bug)
+- Monitoring verification and auto-recovery (fixes albums becoming unmonitored)
+- Enhanced logging with [STAGING] and [UNMONITOR] prefixes
+- Staging workflow verification before use
 
 ---
 
-## Recent Session Summary (v0.6.4 → v0.6.8)
+## Recent Session Summary (v0.6.9)
+
+### v0.6.9 - Album-Specific Tracking (2025-11-26)
+
+**Problem**: Three critical bugs reported:
+1. Albums becoming unmonitored after initial monitoring
+2. Unrequested album auto-downloaded
+3. All Caravan Palace cards showing "4 of 5 albums (80%)" - same for every album
+
+**Root Cause**: Status sync tracked artist-wide statistics instead of individual album data
+
+**Solution - 3 Phases**:
+
+**Phase 1: Album-Specific Status Tracking** (2-3 hours)
+- Created migration 004: Added `album_total_tracks`, `album_downloaded_tracks`, `album_monitored` columns
+- Updated `sync_request_status()` (app.py:303-464) to query specific albums by `lidarr_album_id`
+- Modified request card template to display per-album track counts
+- Kept artist-wide stats as fallback for backward compatibility
+
+**Phase 2: Defensive Monitoring Verification** (2-3 hours)
+- Added auto-detection of unmonitored albums (app.py:351-366)
+- Automatically re-enables monitoring when detected
+- Triggers album search after re-enabling
+- Enhanced `unmonitor_all_albums()` with before/after verification (app.py:833-915)
+- Logs albums that remain monitored after unmonitor attempt
+
+**Phase 3: Staging Workflow Safeguards** (1-2 hours)
+- Added artist existence check before using staging cache (app.py:1200-1212)
+- Auto-removes stale staging entries
+- Enhanced logging with [STAGING] and [UNMONITOR] prefixes
+- Better visibility into workflow execution
+
+**Testing**: Ready for field testing - Stage 1 complete, Stage 2 (UX polish) planned
+
+---
+
+## Previous Sessions
+
+### Session Summary (v0.6.4 → v0.6.8)
 
 ### Field Test Bug Fixes
 
@@ -244,6 +290,7 @@ docker compose logs -f jukebox | grep "ALBUM SEARCH"
 - v0.6.5: Fix deleted artist cache and name collision
 - v0.6.6: Fix multiple album monitoring issue
 - v0.6.7-v0.6.8: Enhanced logging and field testing
+- v0.6.9: Album-specific tracking, defensive monitoring, staging safeguards (2025-11-26)
 
 **Commits** (most recent):
 - d1b4842: fix: prevent album monitoring reset (v0.6.6)
