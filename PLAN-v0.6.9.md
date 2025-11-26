@@ -502,14 +502,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 **Total Estimated Effort**: 9-12.5 hours (across 2 stages)
 
-### Stage 1: Critical Bug Fixes (v0.6.9-alpha)
+### ✅ Stage 1: Critical Bug Fixes (COMPLETE)
 
-**Phases 1-3 Only**: 6-8 hours
-1. **Phase 1**: Album-specific status tracking - 2-3 hrs
-2. **Phase 2**: Fix monitoring bugs - 2-3 hrs
-3. **Phase 3**: Prevent unrequested downloads - 2 hrs
+**Phases 1-3**: 6 hours (actual)
+1. ✅ **Phase 1**: Album-specific status tracking - 2-3 hrs
+2. ✅ **Phase 2**: Fix monitoring bugs - 2-3 hrs
+3. ✅ **Phase 3**: Prevent unrequested downloads - 2 hrs
 
-**🛑 STOP → Test & Evaluate → Deploy to production → Field test**
+**Status**: v0.6.9 deployed 2025-11-26, ready for field testing
 
 **Deliverables**:
 - ✅ Per-album track counts (not artist-wide)
@@ -517,37 +517,189 @@ document.addEventListener('DOMContentLoaded', () => {
 - ✅ Verified unmonitoring in staging workflow
 - ✅ Better logging for debugging
 
-**Version**: v0.6.9-alpha or v0.6.9 (if all tests pass)
+**Version**: v0.6.9 (deployed to production)
 
-### Stage 2: Polish & UX Improvements (v0.7.0 or v0.6.10)
+---
 
-**Phases 4-5**: 3.5-4.5 hours (after Stage 1 is stable)
-1. **Phase 4**: Enhanced logging - 1-2 hrs
-2. **Phase 5**: Quick-win UX improvements - 2-2.5 hrs
-   - Better status badges (fixes BUG #4)
-   - Album monitoring badge
-   - Delete request button
-   - Hide failed requests toggle
-   - Status subtext
-   - Status filter pills (optional)
+### 🎨 Stage 2: UX Polish & Quick Wins (READY TO IMPLEMENT)
 
-**Deliverables**:
-- ✅ Clearer status messaging
-- ✅ User-facing monitoring visibility
-- ✅ Request management features
-- ✅ UI polish and professional feel
+**When**: After Stage 1 field testing confirms bugs are fixed
+**Total Effort**: 2-2.5 hours for all 6 improvements
+**Version**: v0.6.10 or v0.7.0 (depending on scope)
 
-**Version**: v0.7.0 (new features) or v0.6.10 (minor UX improvements)
+**Prerequisites**:
+- Stage 1 field tested and stable
+- No critical bugs found in v0.6.9
+- User feedback positive
+
+**Implementation Order** (by effort, fastest first):
+
+#### Phase 5A: Better Status Badge Text (15 min) ⚡
+```python
+# app/templates/components/status_badge.html
+{% if status == 'submitted' %}
+  <span class="status-icon">🔍</span>
+  <span class="status-text">SEARCHING</span>  # Changed from SUBMITTED
+
+{% elif status == 'existing' %}
+  <span class="status-icon">✓</span>
+  <span class="status-text">AVAILABLE</span>  # Changed from EXISTING
+```
+**Impact**: Fixes BUG #4 with zero backend changes
+
+#### Phase 5B: Status Subtext (10 min) ⚡
+```python
+# Add helpful subtext to status badges
+{% if status == 'submitted' %}
+  <span class="status-subtext">Lidarr is searching...</span>
+{% elif status == 'downloading' %}
+  <span class="status-subtext">Download in progress</span>
+{% endif %}
+```
+**Impact**: Professional polish, reduces user confusion
+
+#### Phase 5C: Album Monitoring Badge (20 min) ⚡
+```html
+<!-- app/templates/components/request_card.html -->
+{% if req.status in ['submitted', 'downloading'] and req.lidarr_album_id %}
+  <div class="monitoring-status">
+    {% if req.album_monitored %}
+      <span class="monitor-badge monitored">👁️ Monitored</span>
+    {% else %}
+      <span class="monitor-badge unmonitored">⚠️ Not Monitored</span>
+    {% endif %}
+  </div>
+{% endif %}
+```
+**Impact**: Makes monitoring status visible, helps identify issues
+
+#### Phase 5D: Hide Failed Requests Toggle (20 min) ⚡
+```javascript
+// Pure frontend - no backend changes
+function toggleFailedRequests() {
+  const hidden = localStorage.getItem('hideFailedRequests') === 'true';
+  const newState = !hidden;
+  localStorage.setItem('hideFailedRequests', newState);
+
+  document.querySelectorAll('.request-card[data-status="failed"]').forEach(card => {
+    card.style.display = newState ? 'none' : 'block';
+  });
+}
+
+// Apply on page load
+if (localStorage.getItem('hideFailedRequests') === 'true') {
+  toggleFailedRequests();
+}
+```
+**Impact**: Declutters UI, preference persists
+
+#### Phase 5E: Delete Request Button (30 min) ⚡
+```python
+# Backend: app/app.py
+@app.route("/api/requests/<int:req_id>", methods=["DELETE"])
+@login_required
+def delete_request(req_id):
+    user = current_user()
+    with closing(get_db()) as conn:
+        req = conn.execute("SELECT user_id FROM requests WHERE id = ?", (req_id,)).fetchone()
+        if not req or req['user_id'] != user['id']:
+            return jsonify({"error": "Not found"}), 404
+
+        # Soft delete
+        conn.execute("UPDATE requests SET status = 'deleted', updated_at = ? WHERE id = ?",
+                    (datetime.utcnow().isoformat(), req_id))
+        conn.commit()
+    return jsonify({"success": True})
+```
+```javascript
+// Frontend: request_card.html
+async function deleteRequest(reqId) {
+  if (!confirm('Delete this request?')) return;
+  const resp = await fetch(`/api/requests/${reqId}`, {method: 'DELETE'});
+  if (resp.ok) {
+    const card = document.querySelector(`[data-request-id="${reqId}"]`);
+    card.style.opacity = '0';
+    setTimeout(() => card.remove(), 300);
+  }
+}
+```
+**Impact**: User-requested feature, cleaner UI
+
+#### Phase 5F: Status Filter Pills (30 min, OPTIONAL) ⚡
+```html
+<!-- Add to top of requests page -->
+<div class="status-filters">
+  <button class="filter-pill active" data-filter="all">All (<span id="count-all">0</span>)</button>
+  <button class="filter-pill" data-filter="submitted">Searching (<span id="count-submitted">0</span>)</button>
+  <button class="filter-pill" data-filter="downloading">Downloading (<span id="count-downloading">0</span>)</button>
+  <button class="filter-pill" data-filter="completed">Completed (<span id="count-completed">0</span>)</button>
+  <button class="filter-pill" data-filter="failed">Failed (<span id="count-failed">0</span>)</button>
+</div>
+```
+```javascript
+// Filter functionality with counts
+function filterByStatus(status) {
+  document.querySelectorAll('.request-card').forEach(card => {
+    card.style.display = (status === 'all' || card.dataset.status === status) ? 'block' : 'none';
+  });
+  // Update active state
+  document.querySelectorAll('.filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === status);
+  });
+}
+
+// Update counts
+function updateStatusCounts() {
+  const counts = {};
+  document.querySelectorAll('.request-card').forEach(card => {
+    const status = card.dataset.status;
+    counts[status] = (counts[status] || 0) + 1;
+  });
+  // Update pill counts
+  Object.keys(counts).forEach(status => {
+    document.getElementById(`count-${status}`).textContent = counts[status];
+  });
+}
+```
+**Impact**: Quick filtering, status overview at a glance
+
+---
+
+### Stage 2 Testing Plan
+
+1. **Visual Testing**:
+   - Verify "SEARCHING" and "AVAILABLE" status text
+   - Check monitoring badge appears on active requests
+   - Test delete button animation
+   - Verify filter pills work correctly
+
+2. **Functional Testing**:
+   - Delete a request and verify soft delete
+   - Toggle failed requests on/off
+   - Filter by different statuses
+   - Refresh page and verify localStorage persists
+
+3. **Cross-Browser Testing**:
+   - Test in Chrome, Firefox, Safari
+   - Verify mobile responsiveness
+
+---
 
 ### Recommended Approach
 
-**Now**: Implement Stage 1 (Phases 1-3) → Test & Evaluate
-**If Stage 1 passes tests**: Deploy to production, field test, gather feedback
-**Then**: Decide whether to proceed with Stage 2 based on:
-- User feedback
-- Bug reports
-- Stability of Stage 1 changes
-- Time available
+**✅ Stage 1 Complete**: v0.6.9 deployed, ready for field testing
+
+**Next Steps**:
+1. **User tests v0.6.9**: Verify bugs are fixed
+2. **Gather feedback**: Check for any regressions
+3. **Decision point**: Proceed with Stage 2 if stable
+4. **Implement Stage 2**: All 6 features in ~2.5 hours
+5. **Deploy v0.6.10**: Quick UX polish release
+
+**Timeline Suggestion**:
+- Week 1: Field test v0.6.9
+- Week 2: Implement Stage 2 if stable
+- Deploy v0.6.10 with UX improvements
 
 **Risk Level**: MEDIUM (LOW with Phase 5 additions)
 - Database migration is additive (low risk)

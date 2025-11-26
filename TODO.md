@@ -110,83 +110,90 @@
 
 ---
 
-### Tier 2: Quick Win Features (P1) - Low Effort, High Reward ⚡
+### 🎯 Stage 2: UX Polish (P1) - PLANNED
 
-#### NEW FEATURE: "Ready to Listen!" as Direct Album Link 🎯
-- [ ] **Request**: Make "Ready to Listen!" header a clickable link to open the album on Navidrome
-- [ ] **Current**: Text header with separate service buttons below
-- [ ] **Proposed**: Clickable header that opens album directly on Navidrome (primary service)
-- [ ] **Impact**: HIGH - Faster access to music, fewer clicks
-- [ ] **Priority**: P1 - Quick win UX improvement
-- [ ] **Effort**: 30 minutes (update template, add album search link)
-- [ ] **Location**: request_card.html "Ready to Listen!" section
+**Status**: Ready to implement after v0.6.9 field testing
+**Total Effort**: 2-2.5 hours for all 6 improvements
+**Priority**: All P1 - Quick wins that complement v0.6.9 changes
 
-#### NEW FEATURE: Media Server Buttons for Completed Albums 🎯
-- [ ] **Request**: Show Plex/Jellyfin/Navidrome buttons when album is ready
-- [ ] **Status**: ✅ Already implemented! (request_card.html lines 43-96)
-- [ ] **Current State**:
-  - Navidrome: https://navidrome.bikejeepyoga.com ✅
-  - Jellyfin: https://jellyfin.bikejeepyoga.com ✅ (enabled)
-  - Plex: Uses remote access (investigate direct link options)
-- [ ] **Investigation Needed**:
-  - [ ] Test if current links work correctly for completed albums
-  - [ ] Investigate Plex direct link options (plex.bjy.com subdomain?)
-  - [ ] Verify Jellyfin search works with new subdomain
-- [ ] **Priority**: P1 - Feature already exists, just needs testing/polish
-- [ ] **Effort**: 1 hour (testing + optional Plex subdomain setup)
+See PLAN-v0.6.9.md Phase 5 for detailed implementation specs.
+
+#### 5A. Better Status Badge Text ⚡ (15 min)
+- [ ] Change "SUBMITTED" → "SEARCHING"
+- [ ] Change "EXISTING" → "AVAILABLE"
+- [ ] Fixes BUG #4 with zero backend changes
+- [ ] **Files**: status_badge.html
+
+#### 5B. Album Monitoring Status Badge ⚡ (20 min)
+- [ ] Add "👁️ Monitored" or "⚠️ Not Monitored" badge to active requests
+- [ ] Makes monitoring status visible to users
+- [ ] Uses new `album_monitored` field from v0.6.9
+- [ ] **Files**: request_card.html
+
+#### 5C. Delete Request Button ⚡ (30 min)
+- [ ] Add trash icon to each card with soft delete
+- [ ] Allows users to clean up old/failed requests
+- [ ] From ALL-PROPOSED-FEATURES.md Tier 1 #2
+- [ ] **Files**: app.py (DELETE endpoint), request_card.html, app.js
+
+#### 5D. Hide Failed Requests Toggle ⚡ (20 min)
+- [ ] Button to show/hide failed requests (localStorage)
+- [ ] Declutters UI for users with many failures
+- [ ] Pure frontend, no backend changes
+- [ ] From ALL-PROPOSED-FEATURES.md Tier 1 #1
+- [ ] **Files**: requests.html, app.js
+
+#### 5E. Status Subtext ⚡ (10 min)
+- [ ] Add helpful text under status badges
+- [ ] "Lidarr is searching...", "Download in progress"
+- [ ] Professional polish, reduces confusion
+- [ ] **Files**: status_badge.html
+
+#### 5F. Status Filter Pills (OPTIONAL) ⚡ (30 min)
+- [ ] Filter buttons: [All] [Searching (3)] [Downloading (2)] [Completed (5)]
+- [ ] Quick filtering with counts
+- [ ] From ALL-PROPOSED-FEATURES.md Tier 1 #4
+- [ ] **Files**: requests.html, app.js
 
 ---
 
-### Tier 3: Medium Priority Features (P2)
+### Tier 2: Quick Win Features (P1) - User Requested ⚡
 
-#### INVESTIGATE: Partial Album Download Visibility 🔍
-- [ ] **Issue**: When album is partially downloaded (e.g., 11 of 14 tracks), unclear if this is shown
-- [ ] **Expected**: User should see "📥 11 of 14 tracks (79%)" for partial downloads
-- [ ] **Current**: v0.6.9 shows per-album track counts - need to verify partial state handling
-- [ ] **Investigation**:
-  - [ ] Test with partially downloaded album
-  - [ ] Check if status shows "downloading" with correct track count
-  - [ ] Verify progress bar reflects partial state
-- [ ] **Enhancement**: If not shown, add better Lidarr detail communication:
-  - Show which tracks are missing
-  - Display quality info (bitrate, format)
-  - Show download source/indexer info
-- [ ] **Priority**: P2 - Nice to have for transparency
+#### "Ready to Listen!" as Direct Album Link 🎯
+- [ ] **Request**: Make "Ready to Listen!" header clickable to open album on Navidrome
+- [ ] **Current**: Text header with separate service buttons
+- [ ] **Impact**: HIGH - Faster access to music, fewer clicks
+- [ ] **Effort**: 30 minutes (update template, add album search link)
+- [ ] **Location**: request_card.html
+
+#### Media Server Buttons Testing & Polish 🎯
+- [ ] **Status**: ✅ Already implemented! Just needs testing
+- [ ] **Test**: Verify links work for completed albums
+- [ ] **Investigate**: Plex direct link options (plex.bjy.com subdomain?)
+- [ ] **Verify**: Jellyfin search works with jellyfin.bikejeepyoga.com
+- [ ] **Effort**: 1 hour (testing + optional Plex subdomain)
+
+---
+
+### Tier 3: Investigation Tasks (P2) 🔍
+
+#### Partial Album Download Visibility
+- [ ] **Question**: Does v0.6.9 show "11 of 14 tracks (79%)" for partial downloads?
+- [ ] **Test**: Partially downloaded album handling
+- [ ] **Enhancement**: Add quality/source info if needed
 - [ ] **Effort**: 2-3 hours (investigation + potential enhancement)
 
-#### INVESTIGATE: Real-Time Download Status from Download Clients 🔍
-- [ ] **Issue**: Album shows "submitted" while downloading, no progress until complete
-- [ ] **Current**: Lidarr shows cloud icon in Activity, but we don't display it
-- [ ] **Example**: Lidarr shows "Grabbed from FearNoPeer via qBittorrent" with detailed info
-- [ ] **Proposed**: Tap into qBittorrent/SABnzbd APIs for real-time status
-- [ ] **Potential Data**:
-  - Download progress: "Downloading: 45% (3.2 GB / 7.1 GB)"
-  - Download speed: "Speed: 8.5 MB/s"
-  - ETA: "ETA: 12 minutes"
-  - Indexer: "Source: FearNoPeer"
-  - Release info: "Quality: 24BIT-48KHZ-WEB-FLAC"
-- [ ] **Investigation**:
-  - [ ] Check Lidarr API for queue/activity endpoints
-  - [ ] Research qBittorrent API integration
-  - [ ] Research SABnzbd API integration
-  - [ ] Design UI for download progress display
-- [ ] **Priority**: P2 - Nice to have for power users
-- [ ] **Effort**: 4-6 hours (API research + implementation + UI)
-- [ ] **Risk**: Medium (requires multiple API integrations)
+#### Real-Time Download Status from qBit/SABnzbd
+- [ ] **Goal**: Show download progress, speed, ETA while downloading
+- [ ] **APIs**: Lidarr queue, qBittorrent, SABnzbd
+- [ ] **Data**: Progress %, speed, ETA, indexer, quality
+- [ ] **Effort**: 4-6 hours (research + implementation + UI)
+- [ ] **Risk**: Medium (multiple API integrations)
 
-#### BUG #4: Unclear card status - "existing" means artist or album?
-- [ ] **Issue**: Request card shows "existing" status - ambiguous
-- [ ] **Expected**: Clear distinction - "Artist exists, album monitoring" vs "Album already available"
-- [ ] **Impact**: LOW-MEDIUM - Status clarity
-- [ ] **Priority**: P2 - UX polish (will be fixed in Stage 2 Phase 5A)
-- [ ] **Location**: Request card rendering logic, status badge
-
-#### Feature: API Health Check Button 🎯
-- [ ] **Request**: Add button to ping MusicBrainz and Lidarr APIs
-- [ ] **Use Case**: Debug/dev - verify connections without making requests
-- [ ] **Location**: Could add to requests page or new admin page
-- [ ] **Priority**: P2 - Nice to have for troubleshooting
-- [ ] **Effort**: 1-2 hours (new endpoint + UI button)
+#### API Health Check Button
+- [ ] **Use Case**: Ping MusicBrainz and Lidarr to verify connections
+- [ ] **Location**: Requests page or admin page
+- [ ] **Effort**: 1-2 hours (endpoint + UI button)
 
 ---
 
