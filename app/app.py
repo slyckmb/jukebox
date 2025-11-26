@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.4"
+__version__ = "0.6.5"
 
 import os
 import sqlite3
@@ -607,7 +607,11 @@ def create_artist_in_staging(artist_name: str, mb_artist_id: str, user_id: int):
 
     foreign_id = artist_data.get("foreignArtistId")
     name = artist_data.get("artistName") or artist_name
-    path = f"{root_folder}/{name}"
+
+    # BUG FIX 0.6.4-2: Make path unique by appending MB ID to prevent collisions
+    # for artists with identical names (e.g., multiple "NF" artists)
+    mb_id_suffix = mb_artist_id[:8] if mb_artist_id else ""
+    path = f"{root_folder}/{name}-{mb_id_suffix}" if mb_id_suffix else f"{root_folder}/{name}"
 
     payload = {
         "artistName": name,
@@ -1519,37 +1523,62 @@ def pull_albums_api():
         return jsonify({"status": "error", "message": staging_err}), 500
 
     if staging_artist:
-        # Artist exists in staging
+        # Artist exists in staging - verify it still exists in Lidarr
         lidarr_artist_id = staging_artist["lidarr_artist_id"]
-        last_refresh = staging_artist["last_refreshed_at"]
 
-        if last_refresh:
-            last_refresh_dt = datetime.fromisoformat(last_refresh)
-            days_old = (datetime.utcnow() - last_refresh_dt).days
-        else:
-            days_old = 999
+        # BUG FIX 0.6.4-1: Check if artist still exists in Lidarr before using cached entry
+        try:
+            url = f"{LIDARR_URL}/artist/{lidarr_artist_id}"
+            resp = requests.get(url, params={"apikey": LIDARR_API_KEY}, timeout=10)
 
-        if days_old > STAGING_REFRESH_DAYS:
-            # Stale, trigger refresh
-            success, refresh_err = trigger_artist_refresh(lidarr_artist_id)
-            if not success:
-                app.logger.error(f"Refresh failed: {refresh_err}")
+            if resp.status_code == 404:
+                # Artist was deleted from Lidarr - clean up stale staging entry
+                app.logger.warning(f"Staging artist {artist_name} (ID {lidarr_artist_id}) no longer exists in Lidarr - removing from staging")
+                with closing(get_db()) as conn:
+                    conn.execute("DELETE FROM artist_staging WHERE lidarr_artist_id = ?", (lidarr_artist_id,))
+                    conn.commit()
+                # Fall through to create new artist below
+                staging_artist = None
+            elif resp.status_code != 200:
+                app.logger.error(f"Error checking artist existence: HTTP {resp.status_code}")
+                return jsonify({"status": "error", "message": f"Lidarr error {resp.status_code}"}), 500
+        except Exception as exc:
+            app.logger.error(f"Exception checking artist existence: {exc}")
+            return jsonify({"status": "error", "message": f"Failed to verify artist: {exc}"}), 500
 
-            return jsonify({
-                "status": "ok",
-                "lidarr_artist_id": lidarr_artist_id,
-                "state": "refreshing",
-                "message": f"Refreshing {artist_name} (last updated {days_old} days ago)"
-            })
-        else:
-            # Fresh, use immediately
-            return jsonify({
-                "status": "ok",
-                "lidarr_artist_id": lidarr_artist_id,
-                "state": "ready",
-                "message": f"Using cached {artist_name}"
-            })
-    else:
+        # If staging_artist is still valid, proceed with refresh logic
+        if staging_artist:
+            last_refresh = staging_artist["last_refreshed_at"]
+
+            if last_refresh:
+                last_refresh_dt = datetime.fromisoformat(last_refresh)
+                days_old = (datetime.utcnow() - last_refresh_dt).days
+            else:
+                days_old = 999
+
+            if days_old > STAGING_REFRESH_DAYS:
+                # Stale, trigger refresh
+                success, refresh_err = trigger_artist_refresh(lidarr_artist_id)
+                if not success:
+                    app.logger.error(f"Refresh failed: {refresh_err}")
+
+                return jsonify({
+                    "status": "ok",
+                    "lidarr_artist_id": lidarr_artist_id,
+                    "state": "refreshing",
+                    "message": f"Refreshing {artist_name} (last updated {days_old} days ago)"
+                })
+            else:
+                # Fresh, use immediately
+                return jsonify({
+                    "status": "ok",
+                    "lidarr_artist_id": lidarr_artist_id,
+                    "state": "ready",
+                    "message": f"Using cached {artist_name}"
+                })
+
+    # staging_artist is None (either not found or was deleted) - continue to creation
+    if not staging_artist:
         # Not in staging - check if artist already exists in Lidarr
         exists, existing_artist, check_err = check_artist_exists_in_lidarr(mb_artist_id)
 
