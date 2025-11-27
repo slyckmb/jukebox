@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.11"
+__version__ = "0.6.12"
 
 import os
 import sqlite3
@@ -404,8 +404,31 @@ def sync_request_status(request_id: int) -> bool:
                         app.logger.info(f"✓ Request {request_id} status changed: {old_status} → {new_status}")
 
                     return new_status != old_status
+                elif album_resp.status_code == 404:
+                    # v0.6.12: BUG FIX - Stale album ID in database
+                    # Album no longer exists in Lidarr (deleted or never existed)
+                    app.logger.error(
+                        f"[STALE ALBUM] Album {lidarr_album_id} not found in Lidarr for request {request_id}. "
+                        f"Marking request as failed."
+                    )
+                    now = datetime.now(UTC).isoformat()
+                    error_msg = f"Album no longer exists in Lidarr (ID {lidarr_album_id}). Please submit a new request."
+                    conn.execute(
+                        """UPDATE requests
+                           SET status = 'failed',
+                               last_error = ?,
+                               updated_at = ?
+                           WHERE id = ?""",
+                        (error_msg, now, request_id)
+                    )
+                    conn.commit()
+                    app.logger.info(f"✓ Request {request_id} marked as failed due to stale album ID")
+                    return True  # Status changed from submitted/downloading to failed
                 else:
-                    app.logger.warning(f"Could not fetch album {lidarr_album_id} for request {request_id}")
+                    app.logger.warning(
+                        f"Could not fetch album {lidarr_album_id} for request {request_id} "
+                        f"(status code: {album_resp.status_code})"
+                    )
                     return False
 
             # Fallback: If no album_id, use old artist-wide logic (backward compatibility)
