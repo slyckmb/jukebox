@@ -9,7 +9,7 @@ services:
     container_name: jukebox
     restart: unless-stopped
     env_file:
-      - .env
+      - .env.urls
       - /mnt/config/secrets/jukebox/env
       - /mnt/config/secrets/bash/bash_lidarr-api-key.env
     volumes:
