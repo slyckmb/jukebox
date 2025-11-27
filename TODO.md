@@ -1,8 +1,8 @@
 # Jukebox TODO
 
-**Current Version**: v0.6.11
+**Current Version**: v0.6.12
 **Last Updated**: 2025-11-26
-**Status**: Production-ready, 2 P1 bugs fixed
+**Status**: Production-ready, P0 + 2 P1 bugs fixed
 
 ---
 
@@ -12,17 +12,18 @@ Work in priority order from top to bottom. Mark items complete [x] as you finish
 
 ### 🚨 P0: Critical - Fix Immediately
 
-#### BUG v0.6.10-1: Stale Album ID in Database (Request 23, Album 2131)
-- [ ] **Issue**: Jukebox trying to fetch non-existent album 2131 for request 23
-- [ ] **Evidence**: Repeated "Could not fetch album 2131" warnings + Lidarr ModelNotFoundException
-- [ ] **Impact**: Log noise, incorrect status display, user confusion
-- [ ] **Priority**: P0 - Data integrity + user experience
-- [ ] **Solution Options**:
-  1. Add cleanup script to detect and mark orphaned requests as "failed" with error message
-  2. Enhance sync_request_status() to detect 404 errors and update status
-  3. Add admin page to view/clean stale requests
-- [ ] **Effort**: 2-3 hours (script + error handling + testing)
-- [ ] **Location**: app.py:303-464 (sync_request_status)
+#### ~~BUG v0.6.10-1: Stale Album ID in Database (Request 23, Album 2131)~~ ✅ FIXED in v0.6.12
+- [x] **Issue**: Jukebox trying to fetch non-existent album 2131 for request 23
+- [x] **Evidence**: Repeated "Could not fetch album 2131" warnings + Lidarr ModelNotFoundException
+- [x] **Impact**: Log noise, incorrect status display, user confusion
+- [x] **Solution Implemented**: Enhanced sync_request_status() to detect 404 errors
+- [x] **How it works**:
+  - Detects when album doesn't exist (404 response from Lidarr)
+  - Automatically marks request as "failed" with helpful error message
+  - Prevents log noise from repeated failed fetches
+  - Provides user guidance: "Album no longer exists, submit new request"
+- [x] **Testing**: Request 23 successfully marked as failed, other album IDs validated
+- [x] **Location**: app.py:407-426 (sync_request_status)
 
 ---
 
@@ -157,6 +158,13 @@ Work in priority order from top to bottom. Mark items complete [x] as you finish
 
 ## ✅ Recently Completed
 
+### v0.6.12 - P0 Critical Bug Fix (2025-11-26)
+Fixed stale album ID issue:
+1. ✅ Enhanced sync_request_status() to detect 404 errors for missing albums
+2. ✅ Auto-marks requests as "failed" with helpful error message
+3. ✅ Eliminates log noise from repeated failed fetch attempts
+4. ✅ Request 23 (album 2131) successfully cleaned up
+
 ### v0.6.11 - P1 Bug Fixes (2025-11-26)
 Quick wins sprint - 2 critical P1 fixes:
 1. ✅ Fix Python datetime.utcnow() deprecation (25 instances replaced)
@@ -216,6 +224,7 @@ All features complete and deployed:
 - v0.6.9: Album-specific tracking, defensive monitoring (2025-11-26)
 - v0.6.10: Stage 2 UX polish (2025-11-26)
 - v0.6.11: P1 bug fixes - datetime deprecation + clickable header (2025-11-26)
+- v0.6.12: P0 critical fix - stale album ID detection and cleanup (2025-11-26)
 
 ---
 

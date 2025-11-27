@@ -1,7 +1,7 @@
 # Jukebox Agent Handoff
 
 **Date**: 2025-11-26
-**Version**: v0.6.10
+**Version**: v0.6.12
 **Repo**: /home/michael/dev/work/jukebox
 **Production**: https://jukebox.bikejeepyoga.com
 
@@ -9,41 +9,91 @@
 
 ## Project Status
 
-### Current State: v0.6.10 - Production Ready with Full Monitoring ✅
+### Current State: v0.6.12 - Production Ready, P0 + P1 Bugs Fixed ✅
 
 **Recent Accomplishments** (this session):
-- ✅ **v0.6.10 Stage 2**: 6 UX polish features deployed
-- ✅ **Systemic Log Review**: Comprehensive workflow monitoring established
-- ✅ **Critical Issues Found**: 4 new bugs/issues documented from log analysis
-- ✅ **Housekeeping**: Project cleanup, documentation reorganization
-- ✅ **Service Log Documentation**: Complete log locations guide for all 7 services
+- ✅ **v0.6.11**: Fixed 2 P1 bugs (datetime deprecation + clickable header)
+- ✅ **v0.6.12**: Fixed P0 critical bug (stale album ID detection)
+- ✅ **Quick Wins Sprint**: 1.5 hours for P1 fixes
+- ✅ **Critical Bug Fix**: 2 hours for P0 stale album cleanup
+- ✅ **Total Session Time**: ~3.5 hours, 2 versions deployed
 
 **Production Status**:
-- Deployed: v0.6.10 running at https://jukebox.bikejeepyoga.com
+- Deployed: v0.6.12 running at https://jukebox.bikejeepyoga.com
 - Database: SQLite with album-specific columns (migration 004 applied)
-- Status: Production-ready, housekeeping complete
+- Status: Production-ready, all critical bugs resolved
 - Monitoring: Full workflow log review established
 
-**What Works Now** (v0.6.10):
-- **All v0.6.9 features**: Album-specific tracking, defensive monitoring, enhanced logging
+**What Works Now** (v0.6.12):
+- **All v0.6.9-v0.6.10 features**: Album-specific tracking, defensive monitoring, UX polish
 - **Better UX**: Improved status labels, monitoring badges, filter pills, delete buttons
-- **Hide failed requests**: Toggle with localStorage persistence
-- **Status filters**: Quick filtering by request status with counts
-- **Complete monitoring**: Log review process for entire Jukebox → Lidarr → Download → Media Server workflow
+- **Clickable "Ready to Listen!" header**: Direct link to album/artist in Navidrome (v0.6.11)
+- **Python 3.13+ compatibility**: All datetime.utcnow() replaced with datetime.now(UTC) (v0.6.11)
+- **Stale album ID detection**: Auto-marks failed requests with helpful error messages (v0.6.12)
+- **Complete monitoring**: Full workflow log review established
 
-**What's New in v0.6.10**:
-- Status badge improvements ("SEARCHING" instead of "SUBMITTED", "AVAILABLE" instead of "EXISTING")
-- Status subtext with helpful descriptions
-- Album monitoring badge (👁️ Monitored / ⚠️ Not Monitored)
-- Hide failed requests toggle
-- Delete request button (soft delete with confirmation)
-- Status filter pills with counts (All, Searching, Downloading, etc.)
-- Comprehensive log monitoring documentation (AGENT-HANDOFF.md)
-- Systemic log review added to STAGE-TEST-PLAN.md
+**What's New in v0.6.11-v0.6.12**:
+- **v0.6.11**: Fixed datetime deprecation (25 instances), clickable listen header
+- **v0.6.12**: Enhanced sync_request_status() to detect 404 errors for missing albums
+- Request 23 (stale album 2131) automatically cleaned up
+- Cleaner logs - no more repeated "Could not fetch album" warnings
+- Better user experience - clear error messages for stale references
 
 ---
 
-## Recent Session Summary (v0.6.10)
+## Recent Session Summary (v0.6.11-v0.6.12)
+
+### v0.6.11-v0.6.12 - Quick Wins + Critical Bug Fix (2025-11-26)
+
+**Session Duration**: ~3.5 hours
+**Versions Deployed**: 2 (v0.6.11, v0.6.12)
+**Issues Resolved**: 3 (1 P0, 2 P1)
+
+**Phase 1: P1 Quick Wins Sprint** (1.5 hours)
+
+1. **BUG v0.6.10-2**: Python datetime.utcnow() Deprecation
+   - Replaced all 25 instances with datetime.now(UTC)
+   - Added UTC import from datetime module
+   - Resolves Python 3.13+ compatibility issues
+   - Files: app/app.py
+
+2. **FEATURE**: Clickable "Ready to Listen!" Header
+   - Made header link directly to album/artist in Navidrome
+   - Smart search: album title if available, else artist name
+   - Added hover effects and smooth animations
+   - Files: app/templates/components/request_card.html, app/templates/requests.html
+
+**Phase 2: P0 Critical Bug Fix** (2 hours)
+
+3. **BUG v0.6.10-1**: Stale Album ID in Database
+   - **Problem**: Request 23 referenced album 2131 that no longer exists
+   - **Impact**: Repeated log warnings, incorrect status display
+   - **Solution**: Enhanced sync_request_status() to detect 404 errors
+   - **Implementation**:
+     - Added 404 status code check in album fetch logic (app.py:407-426)
+     - Auto-marks request as "failed" with helpful error message
+     - Prevents log noise from repeated failed fetches
+     - Provides user guidance: "Album no longer exists, submit new request"
+   - **Testing**: Request 23 marked as failed, other album IDs validated (2068, 2151)
+   - Files: app/app.py
+
+**Deployment Summary**:
+- v0.6.11: Built, tested, deployed successfully
+- v0.6.12: Built, tested, deployed successfully
+- All health checks passed
+- No deprecation warnings in logs
+- Request 23 cleaned up automatically
+
+**Files Modified**:
+- app/app.py: datetime fixes, version bumps, 404 detection logic
+- app/templates/components/request_card.html: Clickable header
+- app/templates/requests.html: CSS for clickable header
+- TODO.md: Updated with completed tasks
+- AGENT-HANDOFF.md: Session summary
+
+---
+
+## Previous Session Summary (v0.6.10)
 
 ### v0.6.10 - Stage 2 UX Polish & Housekeeping (2025-11-26)
 
