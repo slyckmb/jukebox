@@ -1,8 +1,8 @@
 # Jukebox TODO
 
-**Current Version**: v0.6.10
+**Current Version**: v0.6.11
 **Last Updated**: 2025-11-26
-**Status**: Production-ready, housekeeping complete
+**Status**: Production-ready, 2 P1 bugs fixed
 
 ---
 
@@ -37,21 +37,19 @@ Work in priority order from top to bottom. Mark items complete [x] as you finish
 - [ ] **Priority**: P1 - Prevents recurrence of critical workflow bugs
 - [ ] **API**: Check `/api/v1/rootfolder` endpoint
 
-#### BUG v0.6.10-2: Python datetime.utcnow() Deprecation Warnings
-- [ ] **Issue**: 7+ locations using deprecated datetime.utcnow()
-- [ ] **Impact**: Will break in future Python versions, log clutter
-- [ ] **Solution**: Replace all `datetime.utcnow()` with `datetime.now(datetime.UTC)`
-- [ ] **Locations**: app.py:388, 461, 736, 1167, 1168, 1286, 1962
-- [ ] **Effort**: 15-30 minutes (find/replace + testing)
-- [ ] **Priority**: P1 - Technical debt, easy win
+#### ~~BUG v0.6.10-2: Python datetime.utcnow() Deprecation Warnings~~ ✅ FIXED in v0.6.11
+- [x] **Issue**: 7+ locations using deprecated datetime.utcnow()
+- [x] **Impact**: Will break in future Python versions, log clutter
+- [x] **Solution**: Replace all `datetime.utcnow()` with `datetime.now(datetime.UTC)`
+- [x] **Fixed**: Replaced 25 instances, added UTC import
+- [x] **Testing**: Python syntax validated, no deprecation warnings in logs
 
-#### FEATURE: "Ready to Listen!" as Direct Album Link
-- [ ] **Request**: Make "Ready to Listen!" header clickable to open album on Navidrome
-- [ ] **Current**: Text header with separate service buttons
-- [ ] **Impact**: HIGH - Faster access to music, fewer clicks
-- [ ] **Effort**: 30 minutes (update template, add album search link)
-- [ ] **Location**: app/templates/components/request_card.html
-- [ ] **Priority**: P1 - Quick win, user requested
+#### ~~FEATURE: "Ready to Listen!" as Direct Album Link~~ ✅ IMPLEMENTED in v0.6.11
+- [x] **Request**: Make "Ready to Listen!" header clickable to open album on Navidrome
+- [x] **Implementation**: Header now links to album/artist search in Navidrome
+- [x] **UX**: Added hover effects, smooth animations, cursor pointer
+- [x] **Smart search**: Uses album title if available, falls back to artist name
+- [x] **Testing**: Deployed successfully
 
 ---
 
@@ -159,6 +157,11 @@ Work in priority order from top to bottom. Mark items complete [x] as you finish
 
 ## ✅ Recently Completed
 
+### v0.6.11 - P1 Bug Fixes (2025-11-26)
+Quick wins sprint - 2 critical P1 fixes:
+1. ✅ Fix Python datetime.utcnow() deprecation (25 instances replaced)
+2. ✅ Make "Ready to Listen!" header clickable (direct Navidrome link)
+
 ### v0.6.10 - Stage 2 UX Polish (2025-11-26)
 All features complete and deployed:
 1. ✅ Better status badge text ("SEARCHING", "AVAILABLE")
@@ -212,6 +215,7 @@ All features complete and deployed:
 - v0.6.7-v0.6.8: Enhanced logging and field testing
 - v0.6.9: Album-specific tracking, defensive monitoring (2025-11-26)
 - v0.6.10: Stage 2 UX polish (2025-11-26)
+- v0.6.11: P1 bug fixes - datetime deprecation + clickable header (2025-11-26)
 
 ---
 
