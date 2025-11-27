@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.15"
+__version__ = "0.6.16"
 
 import os
 import sqlite3
@@ -1997,3 +1997,47 @@ if __name__ == "__main__":
         os.makedirs(db_dir, exist_ok=True)
     startup()
     app.run(host="0.0.0.0", port=5000, debug=False)
+
+
+@app.route("/debug/urls", methods=["GET"])
+@login_required
+def debug_urls():
+    """Debug endpoint to show generated URLs for testing."""
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    # Get a completed request for testing
+    with closing(get_db()) as conn:
+        req = conn.execute(
+            "SELECT * FROM requests WHERE status = 'completed' LIMIT 1"
+        ).fetchone()
+    
+    if not req:
+        return jsonify({"error": "No completed requests found"}), 404
+    
+    from urllib.parse import quote
+    artist_encoded = quote(req["artist_name"])
+    album_encoded = quote(req["album_title"]) if req["album_title"] else None
+    
+    debug_info = {
+        "request_id": req["id"],
+        "artist_name": req["artist_name"],
+        "album_title": req["album_title"],
+        "artist_encoded": artist_encoded,
+        "album_encoded": album_encoded,
+        "media_servers": {
+            "navidrome": NAVIDROME_URL,
+            "jellyfin": JELLYFIN_URL,
+            "plex": PLEX_URL,
+        },
+        "generated_urls": {
+            "navidrome_header": f"{NAVIDROME_URL}/#!/search?query={artist_encoded}",
+            "navidrome_button": f"{NAVIDROME_URL}/#!/search?query={artist_encoded}",
+            "jellyfin": f"{JELLYFIN_URL}/#!/search?query={artist_encoded}",
+            "plex": f"{PLEX_URL}/#!/search?query={artist_encoded}",
+        },
+        "test_instructions": "Open these URLs in your browser and see which ones work"
+    }
+    
+    return jsonify(debug_info)
