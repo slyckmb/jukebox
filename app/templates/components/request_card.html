@@ -76,7 +76,7 @@
   {% if req.status == 'completed' %}
   <div class="listen-now-section">
     {% if media_servers.navidrome %}
-    <a href="{{ media_servers.navidrome }}/#{{ '!' }}/search?query={{ req.artist_name | urlencode }}"
+    <a href="{{ media_servers.navidrome }}/app/#/album/all?filter=%7B%22name%22%3A%22{{ req.artist_name | urlencode }}%22%7D"
        target="_blank"
        class="listen-now-header listen-now-header-link"
        title="Click to open in Navidrome">
@@ -119,7 +119,7 @@
       {% endif %}
 
       {% if media_servers.navidrome %}
-      <a href="{{ media_servers.navidrome }}/#{{ '!' }}/search?query={{ req.artist_name | urlencode }}"
+      <a href="{{ media_servers.navidrome }}/app/#/album/all?filter=%7B%22name%22%3A%22{{ req.artist_name | urlencode }}%22%7D"
          target="_blank"
          class="listen-btn navidrome-btn">
         <span class="btn-icon">🎵</span>
@@ -153,7 +153,7 @@
         </a>
         {% endif %}
         {% if media_servers.navidrome %}
-        <a href="{{ media_servers.navidrome }}/#{{ '!' }}/search?query={{ req.artist_name | urlencode }}" target="_blank" class="media-btn navidrome-btn">
+        <a href="{{ media_servers.navidrome }}/app/#/album/all?filter=%7B%22name%22%3A%22{{ req.artist_name | urlencode }}%22%7D" target="_blank" class="media-btn navidrome-btn">
           🎵 Navidrome
         </a>
         {% endif %}

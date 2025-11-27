@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.16"
+__version__ = "0.6.17"
 
 import os
 import sqlite3
