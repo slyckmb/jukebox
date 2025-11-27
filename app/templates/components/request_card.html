@@ -76,7 +76,7 @@
   {% if req.status == 'completed' %}
   <div class="listen-now-section">
     {% if media_servers.navidrome %}
-    <a href="{{ media_servers.navidrome }}/app/#!/search/{{ req.artist_name | urlencode }}"
+    <a href="{{ media_servers.navidrome }}/app/#{{ '!' }}/search/{{ req.artist_name | urlencode }}"
        target="_blank"
        class="listen-now-header listen-now-header-link"
        title="Click to open in Navidrome">
