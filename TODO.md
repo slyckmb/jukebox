@@ -1,8 +1,8 @@
 # Jukebox TODO
 
-**Current Version**: v0.6.12
-**Last Updated**: 2025-11-26
-**Status**: Production-ready, P0 + 2 P1 bugs fixed
+**Current Version**: v0.6.18
+**Last Updated**: 2025-11-27
+**Status**: Production-ready, Navidrome links working
 
 ---
 
@@ -55,6 +55,19 @@ Work in priority order from top to bottom. Mark items complete [x] as you finish
 ---
 
 ### 📋 P2: Medium Priority - Planned Work
+
+#### Navidrome API Integration - Direct Album Links
+- [ ] **Goal**: Link directly to album page in Navidrome instead of search results
+- [ ] **Current**: Searches by album title, shows search results (v0.6.18)
+- [ ] **Desired**: Direct link to album page (e.g., `/app/#/album/{id}/show`)
+- [ ] **Requirements**:
+  - Query Navidrome Subsonic API to get album ID by title
+  - API endpoint: `/rest/search3.view?query={album}`
+  - Need Navidrome API credentials (username/password or token)
+  - Store mapping or lookup in real-time
+- [ ] **Bonus**: Auto-play functionality if Navidrome API supports it
+- [ ] **Effort**: 4-6 hours (API integration + testing)
+- [ ] **Priority**: P2 - Nice to have, current search works
 
 #### Partial Album Download Visibility
 - [ ] **Question**: Does v0.6.9+ show "11 of 14 tracks (79%)" for partial downloads?
