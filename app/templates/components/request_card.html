@@ -75,7 +75,16 @@
   <!-- THE MONEY SHOT: Listen Now Buttons -->
   {% if req.status == 'completed' %}
   <div class="listen-now-section">
+    {% if media_servers.navidrome %}
+    <a href="{{ media_servers.navidrome }}/app/#!/search/{% if req.album_title %}{{ req.album_title | urlencode }}{% else %}{{ req.artist_name | urlencode }}{% endif %}"
+       target="_blank"
+       class="listen-now-header listen-now-header-link"
+       title="Open in Navidrome">
+      ✅ Ready to Listen!
+    </a>
+    {% else %}
     <p class="listen-now-header">✅ Ready to Listen!</p>
+    {% endif %}
     <div class="listen-now-buttons">
       {% if media_servers.plex %}
       <a href="{{ media_servers.plex }}/#!/search?query={{ req.artist_name | urlencode }}"

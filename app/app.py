@@ -11,12 +11,12 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.10"
+__version__ = "0.6.11"
 
 import os
 import sqlite3
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, UTC
 
 import requests
 from flask import (
@@ -385,7 +385,7 @@ def sync_request_status(request_id: int) -> bool:
                     )
 
                     # Update database with album-specific data
-                    now = datetime.utcnow().isoformat()
+                    now = datetime.now(UTC).isoformat()
                     conn.execute(
                         """UPDATE requests
                            SET status = ?,
@@ -458,7 +458,7 @@ def sync_request_status(request_id: int) -> bool:
             app.logger.info(f"Request {request_id}: {old_status} → {new_status} ({downloaded_count}/{total_albums} albums)")
 
             # Update database with artist-wide data (legacy)
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(UTC).isoformat()
             conn.execute(
                 """UPDATE requests
                    SET status = ?,
@@ -733,7 +733,7 @@ def create_artist_in_staging(artist_name: str, mb_artist_id: str, user_id: int):
                        (user_id, artist_name, lidarr_artist_id, mb_artist_id, created_at, last_refreshed_at, refresh_count)
                        VALUES (?, ?, ?, ?, ?, ?, 0)""",
                     (user_id, name, lidarr_artist_id, mb_artist_id,
-                     datetime.utcnow().isoformat(), datetime.utcnow().isoformat())
+                     datetime.now(UTC).isoformat(), datetime.now(UTC).isoformat())
                 )
                 conn.commit()
 
@@ -785,7 +785,7 @@ def trigger_artist_refresh(lidarr_artist_id: int):
                     """UPDATE artist_staging
                        SET last_refreshed_at = ?, refresh_count = refresh_count + 1
                        WHERE lidarr_artist_id = ?""",
-                    (datetime.utcnow().isoformat(), lidarr_artist_id)
+                    (datetime.now(UTC).isoformat(), lidarr_artist_id)
                 )
                 conn.commit()
 
@@ -1164,8 +1164,8 @@ def new_request():
                     "new",
                     tag,
                     root_folder,
-                    datetime.utcnow().isoformat(),
-                    datetime.utcnow().isoformat(),
+                    datetime.now(UTC).isoformat(),
+                    datetime.now(UTC).isoformat(),
                 ),
             )
             req_id = cur.lastrowid
@@ -1179,7 +1179,7 @@ def new_request():
             with closing(get_db()) as conn:
                 conn.execute(
                     "UPDATE requests SET status = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                    ("failed", friendly_error, datetime.utcnow().isoformat(), req_id),
+                    ("failed", friendly_error, datetime.now(UTC).isoformat(), req_id),
                 )
                 conn.commit()
             flash(f"Artist lookup failed: {friendly_error}", "danger")
@@ -1228,7 +1228,7 @@ def new_request():
                 with closing(get_db()) as conn:
                     conn.execute(
                         "UPDATE requests SET status = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                        ("failed", friendly_error, datetime.utcnow().isoformat(), req_id),
+                        ("failed", friendly_error, datetime.now(UTC).isoformat(), req_id),
                     )
                     conn.commit()
                 flash(f"✗ {friendly_error}", "danger")
@@ -1251,7 +1251,7 @@ def new_request():
                 with closing(get_db()) as conn:
                     conn.execute(
                         "UPDATE requests SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                        ("failed", lidarr_artist_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                        ("failed", lidarr_artist_id, status_msg, datetime.now(UTC).isoformat(), req_id),
                     )
                     conn.commit()
                 flash(f"✗ {status_msg}", "warning")
@@ -1263,7 +1263,7 @@ def new_request():
                 with closing(get_db()) as conn:
                     conn.execute(
                         "UPDATE requests SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                        ("failed", lidarr_artist_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                        ("failed", lidarr_artist_id, status_msg, datetime.now(UTC).isoformat(), req_id),
                     )
                     conn.commit()
                 flash(f"✗ {status_msg}", "warning")
@@ -1283,7 +1283,7 @@ def new_request():
                     with closing(get_db()) as conn:
                         conn.execute(
                             "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                            ("submitted", lidarr_artist_id, album_id, None, datetime.utcnow().isoformat(), req_id),
+                            ("submitted", lidarr_artist_id, album_id, None, datetime.now(UTC).isoformat(), req_id),
                         )
                         conn.commit()
                     flash(f"✓ {status_msg}", "success")
@@ -1295,7 +1295,7 @@ def new_request():
                     with closing(get_db()) as conn:
                         conn.execute(
                             "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                            ("failed", lidarr_artist_id, album_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                            ("failed", lidarr_artist_id, album_id, status_msg, datetime.now(UTC).isoformat(), req_id),
                         )
                         conn.commit()
                     flash(f"✗ {status_msg}", "danger")
@@ -1318,7 +1318,7 @@ def new_request():
                 with closing(get_db()) as conn:
                     conn.execute(
                         "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                        ("existing", lidarr_artist_id, album_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                        ("existing", lidarr_artist_id, album_id, status_msg, datetime.now(UTC).isoformat(), req_id),
                     )
                     conn.commit()
                 flash(f"✓ {status_msg}", "info")
@@ -1347,7 +1347,7 @@ def new_request():
                 with closing(get_db()) as conn:
                     conn.execute(
                         "UPDATE requests SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                        ("existing", lidarr_artist_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                        ("existing", lidarr_artist_id, status_msg, datetime.now(UTC).isoformat(), req_id),
                     )
                     conn.commit()
                 flash(f"✓ {status_msg}", "info")
@@ -1369,7 +1369,7 @@ def new_request():
                         with closing(get_db()) as conn:
                             conn.execute(
                                 "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                                ("submitted", lidarr_artist_id, album_id, None, datetime.utcnow().isoformat(), req_id),
+                                ("submitted", lidarr_artist_id, album_id, None, datetime.now(UTC).isoformat(), req_id),
                             )
                             conn.commit()
                         flash(f"✓ {status_msg}", "success")
@@ -1381,7 +1381,7 @@ def new_request():
                         with closing(get_db()) as conn:
                             conn.execute(
                                 "UPDATE requests SET status = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                                ("failed", status_msg, datetime.utcnow().isoformat(), req_id),
+                                ("failed", status_msg, datetime.now(UTC).isoformat(), req_id),
                             )
                             conn.commit()
                         flash(f"✗ {status_msg}", "danger")
@@ -1404,7 +1404,7 @@ def new_request():
                     with closing(get_db()) as conn:
                         conn.execute(
                             "UPDATE requests SET status = ?, lidarr_artist_id = ?, lidarr_album_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                            ("existing", lidarr_artist_id, album_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                            ("existing", lidarr_artist_id, album_id, status_msg, datetime.now(UTC).isoformat(), req_id),
                         )
                         conn.commit()
                     flash(f"✓ {status_msg}", "info")
@@ -1416,7 +1416,7 @@ def new_request():
                 with closing(get_db()) as conn:
                     conn.execute(
                         "UPDATE requests SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                        ("failed", lidarr_artist_id, status_msg, datetime.utcnow().isoformat(), req_id),
+                        ("failed", lidarr_artist_id, status_msg, datetime.now(UTC).isoformat(), req_id),
                     )
                     conn.commit()
                 flash(f"✗ {status_msg}", "warning")
@@ -1431,7 +1431,7 @@ def new_request():
                 friendly_error = parse_lidarr_error(err)
                 conn.execute(
                     "UPDATE requests SET status = ?, last_error = ?, updated_at = ? WHERE id = ?",
-                    ("failed", friendly_error, datetime.utcnow().isoformat(), req_id),
+                    ("failed", friendly_error, datetime.now(UTC).isoformat(), req_id),
                 )
                 conn.commit()
                 flash(f"Failed to send request to Lidarr: {friendly_error}", "danger")
@@ -1443,7 +1443,7 @@ def new_request():
                     SET status = ?, lidarr_artist_id = ?, updated_at = ?
                     WHERE id = ?
                     """,
-                    ("submitted", lidarr_artist_id, datetime.utcnow().isoformat(), req_id),
+                    ("submitted", lidarr_artist_id, datetime.now(UTC).isoformat(), req_id),
                 )
                 conn.commit()
                 flash("Request submitted to Lidarr.", "success")
@@ -1712,7 +1712,7 @@ def pull_albums_api():
 
             if last_refresh:
                 last_refresh_dt = datetime.fromisoformat(last_refresh)
-                days_old = (datetime.utcnow() - last_refresh_dt).days
+                days_old = (datetime.now(UTC) - last_refresh_dt).days
             else:
                 days_old = 999
 
@@ -1868,8 +1868,8 @@ def api_new_request():
                 "new",
                 tag,
                 root_folder,
-                datetime.utcnow().isoformat(),
-                datetime.utcnow().isoformat(),
+                datetime.now(UTC).isoformat(),
+                datetime.now(UTC).isoformat(),
             ),
         )
         req_id = cur.lastrowid
@@ -1893,7 +1893,7 @@ def api_new_request():
             SET status = ?, lidarr_artist_id = ?, last_error = ?, updated_at = ?
             WHERE id = ?
             """,
-            (status, lidarr_artist_id, last_error, datetime.utcnow().isoformat(), req_id),
+            (status, lidarr_artist_id, last_error, datetime.now(UTC).isoformat(), req_id),
         )
         conn.commit()
 
@@ -1959,7 +1959,7 @@ def delete_request(req_id: int):
         # Soft delete: set status to 'deleted'
         conn.execute(
             "UPDATE requests SET status = 'deleted', updated_at = ? WHERE id = ?",
-            (datetime.utcnow().isoformat(), req_id)
+            (datetime.now(UTC).isoformat(), req_id)
         )
         conn.commit()
 

@@ -476,6 +476,24 @@
   50% { opacity: 0.85; }
 }
 
+.listen-now-header-link {
+  display: block;
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--success);
+  margin: 0 0 var(--spacing-md) 0;
+  animation: pulse-success 2s infinite;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.listen-now-header-link:hover {
+  color: var(--success);
+  text-decoration: underline;
+  transform: scale(1.02);
+}
+
 .listen-now-buttons {
   display: flex;
   gap: var(--spacing-sm);
