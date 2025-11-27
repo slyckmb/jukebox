@@ -79,7 +79,21 @@
     <a href="{{ media_servers.navidrome }}/app/#!/search/{% if req.album_title %}{{ req.album_title | urlencode }}{% else %}{{ req.artist_name | urlencode }}{% endif %}"
        target="_blank"
        class="listen-now-header listen-now-header-link"
-       title="Open in Navidrome">
+       title="Click to open in Navidrome">
+      ✅ Ready to Listen!
+    </a>
+    {% elif media_servers.jellyfin %}
+    <a href="{{ media_servers.jellyfin }}/#!/search?query={% if req.album_title %}{{ req.album_title | urlencode }}{% else %}{{ req.artist_name | urlencode }}{% endif %}"
+       target="_blank"
+       class="listen-now-header listen-now-header-link"
+       title="Click to open in Jellyfin">
+      ✅ Ready to Listen!
+    </a>
+    {% elif media_servers.plex %}
+    <a href="{{ media_servers.plex }}/#!/search?query={% if req.album_title %}{{ req.album_title | urlencode }}{% else %}{{ req.artist_name | urlencode }}{% endif %}"
+       target="_blank"
+       class="listen-now-header listen-now-header-link"
+       title="Click to open in Plex">
       ✅ Ready to Listen!
     </a>
     {% else %}
