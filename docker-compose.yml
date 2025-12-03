@@ -1,11 +1,9 @@
-version: "3.9"
-
 services:
   jukebox:
     build:
       context: .
       dockerfile: docker/Dockerfile
-      network: gluetun_network
+      network: host
     container_name: jukebox
     restart: unless-stopped
     env_file:
@@ -16,11 +14,11 @@ services:
       - ./data:/app/data
     ports:
       - "5000:5000"
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
     networks:
       - gluetun_network
-    # If lidarr is in a different compose file, this still works as long as
-    # both stacks share the same external network and lidarr's container_name is "lidarr".
-
 networks:
   gluetun_network:
     external: true
