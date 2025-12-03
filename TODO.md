@@ -1,8 +1,8 @@
 # Jukebox TODO
 
-**Current Version**: v0.6.18
-**Last Updated**: 2025-11-27
-**Status**: Production-ready, Navidrome links working
+**Current Version**: v0.6.20
+**Last Updated**: 2025-12-03
+**Status**: Production-ready, Docker build fixed
 
 ---
 
@@ -11,6 +11,23 @@
 Work in priority order from top to bottom. Mark items complete [x] as you finish them.
 
 ### 🚨 P0: Critical - Fix Immediately
+
+#### BUG v0.6.20-1: Delete Request Button Not Persisting
+- [ ] **Issue**: Trashcan button removes card from view but request comes back after page refresh
+- [ ] **Expected**: Deleted requests should stay deleted (soft delete in database)
+- [ ] **Impact**: User confusion, cluttered request list, poor UX
+- [ ] **Investigation**: Check if DELETE endpoint is actually updating the database or just removing from DOM
+- [ ] **Location**: app.py (delete endpoint), request_card.html (delete button), app.js (delete handler)
+- [ ] **Effort**: 1-2 hours (investigation + fix)
+- [ ] **Priority**: P0 - Core feature not working as intended
+
+#### BUG v0.6.20-2: Version Badge Shows Incorrect Version (0.6.19 instead of 0.6.20)
+- [ ] **Issue**: App displays version 0.6.19, should show 0.6.20
+- [ ] **Expected**: Version badge matches actual deployed version
+- [ ] **Impact**: Low (cosmetic), but confusing for debugging and tracking
+- [ ] **Location**: app.py (VERSION variable or version endpoint)
+- [ ] **Effort**: 5-10 minutes (find and update version string)
+- [ ] **Priority**: P0 - Quick fix, helps with version tracking
 
 #### ~~BUG v0.6.10-1: Stale Album ID in Database (Request 23, Album 2131)~~ ✅ FIXED in v0.6.12
 - [x] **Issue**: Jukebox trying to fetch non-existent album 2131 for request 23
@@ -238,6 +255,9 @@ All features complete and deployed:
 - v0.6.10: Stage 2 UX polish (2025-11-26)
 - v0.6.11: P1 bug fixes - datetime deprecation + clickable header (2025-11-26)
 - v0.6.12: P0 critical fix - stale album ID detection and cleanup (2025-11-26)
+- v0.6.18: Search Navidrome by album title (2025-11-27)
+- v0.6.19: Remove Plex buttons from web UI (2025-11-27)
+- v0.6.20: Docker build network fix - use host network for builds (2025-12-03)
 
 ---
 

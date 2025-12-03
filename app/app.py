@@ -11,7 +11,7 @@ Features:
 - Forwards requests to Lidarr using API key and per-user root folders
 """
 
-__version__ = "0.6.19"
+__version__ = "0.6.20"
 
 import os
 import sqlite3
@@ -1120,12 +1120,14 @@ def _render_requests_page(user):
         if user["is_admin"]:
             cur = conn.execute(
                 "SELECT r.*, u.username FROM requests r JOIN users u ON r.user_id = u.id "
+                "WHERE r.status != 'deleted' "
                 "ORDER BY r.created_at DESC"
             )
         else:
             cur = conn.execute(
                 "SELECT r.*, u.username FROM requests r JOIN users u ON r.user_id = u.id "
-                "WHERE r.user_id = ? ORDER BY r.created_at DESC",
+                "WHERE r.user_id = ? AND r.status != 'deleted' "
+                "ORDER BY r.created_at DESC",
                 (user["id"],),
             )
         rows = cur.fetchall()
@@ -1846,12 +1848,14 @@ def api_list_requests():
         if user["is_admin"]:
             cur = conn.execute(
                 "SELECT r.*, u.username FROM requests r JOIN users u ON r.user_id = u.id "
+                "WHERE r.status != 'deleted' "
                 "ORDER BY r.created_at DESC"
             )
         else:
             cur = conn.execute(
                 "SELECT r.*, u.username FROM requests r JOIN users u ON r.user_id = u.id "
-                "WHERE r.user_id = ? ORDER BY r.created_at DESC",
+                "WHERE r.user_id = ? AND r.status != 'deleted' "
+                "ORDER BY r.created_at DESC",
                 (user["id"],),
             )
         rows = [dict(r) for r in cur.fetchall()]
