@@ -1,8 +1,8 @@
 # Jukebox TODO
 
-**Current Version**: v0.6.20
+**Current Version**: v0.6.21
 **Last Updated**: 2025-12-03
-**Status**: Production-ready, Docker build fixed
+**Status**: Production-ready, delete button and version fixed
 
 ---
 
@@ -12,22 +12,18 @@ Work in priority order from top to bottom. Mark items complete [x] as you finish
 
 ### 🚨 P0: Critical - Fix Immediately
 
-#### BUG v0.6.20-1: Delete Request Button Not Persisting
-- [ ] **Issue**: Trashcan button removes card from view but request comes back after page refresh
-- [ ] **Expected**: Deleted requests should stay deleted (soft delete in database)
-- [ ] **Impact**: User confusion, cluttered request list, poor UX
-- [ ] **Investigation**: Check if DELETE endpoint is actually updating the database or just removing from DOM
-- [ ] **Location**: app.py (delete endpoint), request_card.html (delete button), app.js (delete handler)
-- [ ] **Effort**: 1-2 hours (investigation + fix)
-- [ ] **Priority**: P0 - Core feature not working as intended
+#### ~~BUG v0.6.20-1: Delete Request Button Not Persisting~~ ✅ FIXED in v0.6.21
+- [x] **Issue**: Trashcan button removes card from view but request comes back after page refresh
+- [x] **Root Cause**: API queries didn't filter out deleted requests (status='deleted')
+- [x] **Fix**: Added `WHERE r.status != 'deleted'` to _render_requests_page() and api_list_requests()
+- [x] **Testing**: Validated 8 deleted requests properly hidden, 27 visible requests shown
+- [x] **Location**: app.py:1123, 1129, 1849, 1857
 
-#### BUG v0.6.20-2: Version Badge Shows Incorrect Version (0.6.19 instead of 0.6.20)
-- [ ] **Issue**: App displays version 0.6.19, should show 0.6.20
-- [ ] **Expected**: Version badge matches actual deployed version
-- [ ] **Impact**: Low (cosmetic), but confusing for debugging and tracking
-- [ ] **Location**: app.py (VERSION variable or version endpoint)
-- [ ] **Effort**: 5-10 minutes (find and update version string)
-- [ ] **Priority**: P0 - Quick fix, helps with version tracking
+#### ~~BUG v0.6.20-2: Version Badge Shows Incorrect Version~~ ✅ FIXED in v0.6.21
+- [x] **Issue**: App displayed version 0.6.19 instead of 0.6.20
+- [x] **Fix**: Updated __version__ variable in app.py:14
+- [x] **Testing**: Verified version shows 0.6.21 in running container
+- [x] **Location**: app.py:14
 
 #### ~~BUG v0.6.10-1: Stale Album ID in Database (Request 23, Album 2131)~~ ✅ FIXED in v0.6.12
 - [x] **Issue**: Jukebox trying to fetch non-existent album 2131 for request 23
@@ -258,6 +254,7 @@ All features complete and deployed:
 - v0.6.18: Search Navidrome by album title (2025-11-27)
 - v0.6.19: Remove Plex buttons from web UI (2025-11-27)
 - v0.6.20: Docker build network fix - use host network for builds (2025-12-03)
+- v0.6.21: Fix delete button persistence + version badge display (2025-12-03)
 
 ---
 
